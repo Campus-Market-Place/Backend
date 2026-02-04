@@ -1,14 +1,10 @@
 import express from 'express';
 import cors from "cors";
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from '../lib/auth.js';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { usersRouter } from './router/user_router.js';
 import { config } from './config.js';
-import { productRouter } from './router/productrouter.js';
-import { cartRouter } from './router/cartrouter.js';
-import { createOrder } from './router/paymentroute.js';
+
 
 export const app = express();
 
@@ -42,10 +38,10 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 // Auth routes with better-auth
 // app.all("/api/auth/*", toNodeHandler(auth));
-app.use('/api', usersRouter);
-app.use('/api', productRouter);
-app.use('/api/cart', cartRouter);
-app.post('/api/v1/createOrder',createOrder)
+// app.use('/api', usersRouter);
+// app.use('/api', productRouter);
+// app.use('/api/cart', cartRouter);
+// app.post('/api/v1/createOrder',createOrder)
 
 // parse JSON for your own routes (after auth)
 app.use(express.json());
