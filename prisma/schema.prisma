@@ -5,208 +5,283 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
+// --------------------- User ---------------------
 model User {
-  id            String      @id @default(uuid())
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  location      String?
-  phoneNumber   String?  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  cart          Cart[]
-  order         Order[]
+  id               String   @id @default(uuid())
+  telegramId       String   @unique
+  username         String
+  firstName        String
+  role             Role     @default(USER)
+  sellerStatus     SellerStatus @default(NONE)
+  suspensionReason String?
+  createdAt        DateTime @default(now())
 
-  @@unique([email])
-  @@map("user")
+  sellerProfile    SellerProfile?
+  interactions     Interaction[]
+  reportsMade      Report[]  @relation("UserReports")
+  follows          Follow[]
+  reviews          Review[]
+
+  @@index([telegramId])
 }
 
-model Session {
-  id        String     @id @default(uuid())
-  expiresAt DateTime
-  token     String
+// --------------------- Seller Profile ---------------------
+model SellerProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  shopName          String
+  campusLocation    String?
+  categories        String[] // enum strings
+  mainPhone         String
+  secondaryPhone    String?
+  isOpen            Boolean  @default(true)
+  socialMedias      SocialMedia?
+  idImage           String?
+  agreedToRules     Boolean  @default(false)
+  approvedAt        DateTime?
+  rating            Float    @default(0) // average across all products
+
+  shop              Shop?
+  notifications     Notification[]
+  interactions      Interaction[]
+  reportsReceived   Report[] @relation("SellerReports")
+  monthlyStats      MonthlyStats?
+  verifications     SellerVerification?
+  followers         Follow[] @relation("SellerProfileFollowers")
+
+  user              User @relation(fields: [userId], references: [id])
+
+  @@index([shopName])
+}
+
+// --------------------- Social Media ---------------------
+model SocialMedia {
+  id        String  @id @default(uuid())
+  telegram  String?
+  instagram String?
+  tiktok    String?
+  other     String?
+  sellerProfileId String @unique
+
+  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
+}
+
+// --------------------- Shop ---------------------
+model Shop {
+  id        String   @id @default(uuid())
+  sellerId  String   @unique
+  bio       String?
+
+  seller    SellerProfile @relation(fields: [sellerId], references: [id])
+  products  Product[]
+  followers Follow[]
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
-  @@map("session")
+  @@index([sellerId])
 }
 
-model Account {
-  id                    String      @id @default(uuid())
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+// --------------------- Category ---------------------
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String?
 
-  @@map("account")
+  products  Product[]
+
+  @@index([name])
 }
 
-model Verification {
-  id         String     @id @default(uuid())
-  identifier String
-  value      String
-  expiresAt  DateTime
+// --------------------- Product ---------------------
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int
+
+  categoryId  String
+  shopId      String
+
+  isActive    Boolean  @default(true)
+
+  category    Category @relation(fields: [categoryId], references: [id])
+  shop        Shop     @relation(fields: [shopId], references: [id])
+
+  images      ProductImage[]
+  reviews     Review[]
+
+  createdAt   DateTime @default(now())
+
+  @@index([shopId])
+  @@index([categoryId])
+}
+
+// --------------------- Product Images ---------------------
+model ProductImage {
+  id         String   @id @default(uuid())
+  productId  String
+  url        String
+  exifData   Json?    // EXIF metadata
+  verified   Boolean  @default(false)
+
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+// --------------------- Report ---------------------
+model Report {
+  id        String   @id @default(uuid())
+  reason    String
+  createdAt DateTime @default(now())
+
+  reporterId String
+  sellerId   String
+
+  reporter   User           @relation("UserReports", fields: [reporterId], references: [id])
+  seller     SellerProfile  @relation("SellerReports", fields: [sellerId], references: [id])
+
+  @@index([sellerId])
+  @@index([reporterId])
+  @@index([createdAt])
+}
+
+// --------------------- Interaction ---------------------
+model Interaction {
+  id        String   @id @default(uuid())
+  action    InteractionType
+  createdAt DateTime @default(now())
+
+  userId           String?
+  sellerProfileId  String
+
+  user            User?          @relation(fields: [userId], references: [id])
+  sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id])
+
+  @@index([sellerProfileId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// --------------------- Notification ---------------------
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  type      NotificationType
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  sellerProfileId String
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id])
+
+  @@index([sellerProfileId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// --------------------- Monthly Stats ---------------------
+model MonthlyStats {
+  id             String   @id @default(uuid())
+  month          Int      // 1-12
+  year           Int
+  followersGained Int     @default(0)
+  reportsCount    Int     @default(0)
+  contactClicks   Int     @default(0)
+  socialMediaChecks Int   @default(0)
+
+  sellerProfileId String @unique
+  sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id])
+
+  @@index([month, year])
+}
+
+// --------------------- Seller Verification ---------------------
+model SellerVerification {
+  id               String   @id @default(uuid())
+  studentIdNumber  String
+  extractedName    String
+  extractedCollege String
+  studyLevel       String
+  qrPayload        String
+  verificationScore Float
+  verificationLevel Int
+  verifiedAt       DateTime?
+  sellerProfileId  String  @unique
+
+  sellerProfile    SellerProfile @relation(fields: [sellerProfileId], references: [id])
+}
+
+// --------------------- Follow ---------------------
+model Follow {
+  id               String   @id @default(uuid())
+  userId           String
+  shopId           String
+  sellerProfileId  String
+  createdAt        DateTime @default(now())
+
+  user             User @relation(fields: [userId], references: [id])
+  shop             Shop @relation(fields: [shopId], references: [id])
+  sellerProfile    SellerProfile @relation("SellerProfileFollowers", fields: [sellerProfileId], references: [id])
+
+  @@unique([userId, shopId])
+  @@index([shopId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([sellerProfileId])
+}
+
+// --------------------- Review ---------------------
+model Review {
+  id         String   @id @default(uuid())
+  userId     String
+  productId  String
+  rating     Int      // 1-5
+  comment    String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
 
-  @@map("verification")
-}
-model TeffType {
-  id          String             @id @default(uuid()) 
-  name        String              @unique
-  products    TeffProduct[]
-}
-model TeffQuality {
-  id          String            @id @default(uuid()) 
-  name        String             @unique // "Level 1", "Level 2"
-  products    TeffProduct[]
+  user       User    @relation(fields: [userId], references: [id])
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId]) // one review per product per user
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
 }
 
-model Image {
-  id          String         @id @default(uuid()) 
-  url         String
-  productId   String
-  product     TeffProduct @relation(fields: [productId], references: [id])
+// --------------------- Enums ---------------------
+enum Role {
+  USER
+  SELLER
+  BOTH
 }
 
-model Packaging {
-  id      String @id @default(uuid())
-  sizeKg  Int    @unique
-  carts   Cart[]
-  orderItems OrderItem[]
+enum SellerStatus {
+  NONE
+  APPROVED
+  SUSPENDED
 }
 
-
-model TeffProduct {
-  id            String        @id @default(uuid())
-  name          String
-  description   String?
-  pricePerKg    Float
-  teffTypeId    String
-  qualityId     String?
-  teffType      TeffType      @relation(fields: [teffTypeId], references: [id])
-  quality       TeffQuality?  @relation(fields: [qualityId], references: [id])
-  images        Image[]
-  cartItems     Cart[]
-  orderItems    OrderItem[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+enum InteractionType {
+  CONTACT_CLICK
+  SOCIAL_MEDIA_CHECK
+  REPORT
+  FOLLOW
 }
 
-model Cart {
-  id             String       @id @default(uuid())
-  userId         String
-  productId      String
-  quantity       Int           @default(1)
-  packagingId    String
-  packaging      Packaging @relation(fields: [packagingId], references: [id])        // e.g. 5, 10, 15 (kg)
-  product        TeffProduct   @relation(fields: [productId], references: [id])
-  user           User          @relation(fields: [userId], references: [id])
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@unique([userId, productId, packagingId]) // 👈 prevents duplicates for same size
+enum NotificationType {
+  REPORT
+  INTERACTION
+  WARNING
+  INFO
 }
-
-// enum status - status: 'pending_payment'| 'paied' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
-enum Status {
-  pending
-  paid
-  delivered
-  completed
-  cancelled
-  refunded
-}
-
-model Order {
-  id           String       @id @default(uuid())
-  userId       String
-  status       Status       @default(pending)
-  totalAmount  Float
-  location     String
-  phoneNumber  String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  user         User         @relation(fields: [userId], references: [id])
-  items        OrderItem[]  // One order can have many order items
-}
-
-model OrderItem {
-  id           String        @id @default(uuid())
-  orderId      String
-  productId    String
-  packagingId  String
-  quantity     Int
-  price        Float
-  
-  order        Order         @relation(fields: [orderId], references: [id])
-  product      TeffProduct   @relation(fields: [productId], references: [id])
-  packaging    Packaging     @relation(fields: [packagingId], references: [id])
-}
-
-// model feedback {
-//   id          String     @id @default(uuid())
-//   userId      String
-//   productId   String
-
-//   packagingsize  String
-//   rating      Int
-//   message     String
-//   createdAt   DateTime  @default(now())
-//   updatedAt   DateTime  @updatedAt
-
-//   user        User      @relation(fields: [userId], references: [id])
-// }
-
-//for feedback i want is after a user order completed it will send notification for user 
-
-
-// payment model can be added later when integrating payment gateway
-
- /* model Payment_initent {
-  id            String     @id @default(uuid())
-  orderId       String
-  amount        Float
-  currency      String
-  status        String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  order         Order     @relation(fields: [orderId], references: [id])  
-  
-}
-
-// indmpotency key
-model indempotencyKey {
-  id            String     @id @default(uuid())
-  key           String     @unique
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-} */

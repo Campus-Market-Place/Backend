@@ -4,9 +4,15 @@ import { toNodeHandler } from 'better-auth/node';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
+import pinoHttpModule from 'express-pino-logger';
+import { v4 as uuidv4 } from 'uuid';
+import { requestLogger } from './middleware/loggemiddleware.js';
+
 
 
 export const app = express();
+
+
 
 
 
@@ -21,7 +27,7 @@ if (config.isdev) {
   //   app.use(cors({
   //   origin: ["https://teff-store.com"], // only your deployed frontend
   //   credentials: true,
-  // }));
+  // }));Nn
 }
 
 
@@ -34,6 +40,25 @@ app.use(express.json());
 
 // Example route (protected demonstration done via authClient or session logic)
 app.get('/health', (req, res) => res.json({ ok: true }));
+
+
+app.use(requestLogger);
+
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    res
+      .status(err.status || 500)
+      .json({ error: err.message || "Internal Server Error" });
+  }
+);
+
 
 
 // Auth routes with better-auth
