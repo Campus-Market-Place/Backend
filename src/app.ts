@@ -40,25 +40,7 @@ app.use(express.json());
 
 // Example route (protected demonstration done via authClient or session logic)
 app.get('/health', (req, res) => res.json({ ok: true }));
-
-
 app.use(requestLogger);
-
-app.use(
-  (
-    err: any,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    // eslint-disable-next-line no-console
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ error: err.message || "Internal Server Error" });
-  }
-);
-
 
 
 // Auth routes with better-auth
@@ -72,20 +54,20 @@ app.use(
 app.use(express.json());
 
 // General error handler for other routes
-app.use(
-  (
-    err: any,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    // eslint-disable-next-line no-console
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ error: err.message || "Internal Server Error" });
-  }
-);
+// app.use(
+//   (
+//     err: any,
+//     _req: express.Request,
+//     res: express.Response,
+//     _next: express.NextFunction
+//   ) => {
+//     // eslint-disable-next-line no-console
+//     console.error(err);
+//     res
+//       .status(err.status || 500)
+//       .json({ error: err.message || "Internal Server Error" });
+//   }
+// );
 
 
 
