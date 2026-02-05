@@ -5,8 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -17,12 +16,13 @@ datasource db {
 model User {
   id               String   @id @default(uuid())
   telegramId       String   @unique
-  username         String
-  firstName        String
+  username         String   
   role             Role     @default(USER)
   sellerStatus     SellerStatus @default(NONE)
   suspensionReason String?
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
 
   sellerProfile    SellerProfile?
   interactions     Interaction[]
@@ -44,10 +44,13 @@ model SellerProfile {
   secondaryPhone    String?
   isOpen            Boolean  @default(true)
   socialMedias      SocialMedia?
-  idImage           String?
+  idImage           String
   agreedToRules     Boolean  @default(false)
   approvedAt        DateTime?
   rating            Float    @default(0) // average across all products
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
 
   shop              Shop?
   notifications     Notification[]

@@ -21,7 +21,7 @@
 ---
 
 ## **Project Overview**
-This project provides a robust backend solution for a campus marketplace, enabling students to buy and sell items efficiently.
+This project provides a robust backend solution for a campus marketplace with Telegram-based authentication, role-based access, and seller onboarding workflows.
 
 ## **Tech Stack**
 - Node.js
@@ -29,6 +29,9 @@ This project provides a robust backend solution for a campus marketplace, enabli
 - TypeScript
 - Prisma
 - PostgreSQL
+- Zod
+- JWT
+- Swagger/OpenAPI
 
 ## **Getting Started**
 To get a local copy up and running follow these simple steps.
@@ -48,18 +51,53 @@ To get a local copy up and running follow these simple steps.
    ```
 3. Set up your database and update the `.env` file with your database credentials.
 
+### **Environment Variables**
+Create a `.env` file with the following values:
+
+```env
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=7d
+ADMIN_USERNAMES=admin_username_1,admin_username_2
+```
+
+### **Database Setup**
+Generate the Prisma client and run migrations:
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+```
+
 ## **API Endpoints**
-- `/api/items` - Get all items
-- `/api/items/:id` - Get item by ID
-- `/api/items` - Create a new item
+- `POST /auth/login` - Login or signup with Telegram username
+- `GET /me` - Current user info
+- `POST /seller-request` - Submit seller request
+- `POST /admin/seller-requests/:userId/approve` - Approve seller request
+- `POST /admin/seller-requests/:userId/reject` - Reject seller request
+- `GET /health` - Health check
+- `GET /docs` - Swagger/OpenAPI docs
 
 ## **Database Schema**
 Refer to the `schema.prisma` file for the database schema.
 
+## **Architecture Overview**
+- **Controllers** handle business logic
+- **Middleware** provides auth, validation, and request logging
+- **Prisma** manages database access
+- **Swagger/OpenAPI** documents the public API
+
 ## **Features**
-- User authentication
-- Item listing
-- Search functionality
+- Telegram-based authentication (username only)
+- Role-based access control (user/seller)
+- Seller request workflow with admin approval
+- JWT-protected endpoints
+- Zod validation
+- Structured logging with request IDs
+- Swagger/OpenAPI documentation
+- Soft deletes and timestamps
 
 ## **Contributing**
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**!

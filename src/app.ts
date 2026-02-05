@@ -1,12 +1,16 @@
 import express from 'express';
-import cors from "cors";
-import { toNodeHandler } from 'better-auth/node';
+import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config.js';
-import pinoHttpModule from 'express-pino-logger';
-import { v4 as uuidv4 } from 'uuid';
 import { requestLogger } from './middleware/loggemiddleware.js';
+import { authRouter } from './router/auth.router.js';
+import { sellerRouter } from './router/seller.router.js';
+import { adminRouter } from './router/admin.router.js';
+import { userRouter } from './router/user.router.js';
+import { openApiSpec } from './docs/openapi.js';
+import { errorHandler } from './errors/apperror.js';
 
 
 
@@ -35,39 +39,20 @@ if (config.isdev) {
 app.use(helmet());
 app.use(cookieParser());
 
-// parse JSON for your own routes (after auth)
-app.use(express.json());
-
-// Example route (protected demonstration done via authClient or session logic)
-app.get('/health', (req, res) => res.json({ ok: true }));
 app.use(requestLogger);
 
-
-// Auth routes with better-auth
-// app.all("/api/auth/*", toNodeHandler(auth));
-// app.use('/api', usersRouter);
-// app.use('/api', productRouter);
-// app.use('/api/cart', cartRouter);
-// app.post('/api/v1/createOrder',createOrder)
-
-// parse JSON for your own routes (after auth)
 app.use(express.json());
 
-// General error handler for other routes
-// app.use(
-//   (
-//     err: any,
-//     _req: express.Request,
-//     res: express.Response,
-//     _next: express.NextFunction
-//   ) => {
-//     // eslint-disable-next-line no-console
-//     console.error(err);
-//     res
-//       .status(err.status || 500)
-//       .json({ error: err.message || "Internal Server Error" });
-//   }
-// );
+app.get('/health', (req, res) => res.json({ ok: true }));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
+app.use('/auth', authRouter);
+app.use('/', userRouter);
+app.use('/', sellerRouter);
+app.use('/admin', adminRouter);
+
+
+app.use(errorHandler);
 
 
 

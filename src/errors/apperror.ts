@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { logger } from "../lib/logger.js";
 
 // Base AppError
 export class AppError extends Error {
@@ -62,7 +63,15 @@ export const errorHandler = (
   let customError = err;
 
   // If not an instance of AppError, wrap it in internal error
-  if (!(err instanceof AppError)) {
+  const isPrismaError =
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    "clientVersion" in err;
+
+  if (isPrismaError) {
+    customError = new DatabaseError("Database operation failed");
+  } else if (!(err instanceof AppError)) {
     customError = new AppError("Internal Server Error", 500, false);
   }
 
@@ -70,13 +79,25 @@ export const errorHandler = (
 
   // Log non-operational errors (programmer errors)
   if (!isOperational) {
-    console.error("💥 Unexpected Error:", err);
+    logger.error({
+      event: "internal_error",
+      requestId: req.requestId,
+      message: err.message,
+      stack: err.stack,
+    });
+  } else {
+    logger.warn({
+      event: "operational_error",
+      requestId: req.requestId,
+      message: err.message,
+    });
   }
 
   res.status(statusCode).json({
     status: "error",
     statusCode,
     message: isOperational ? message : "Something went wrong",
+    requestId: req.requestId,
     // Optional: include stack trace only in development
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
