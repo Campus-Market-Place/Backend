@@ -1,9 +1,9 @@
-// // create a product
-// // update a product
-// // get a product for a category
-// // get a product for a shop
-// // get single product details
-// // delete a product
+// create a product
+// update a product
+// get a product for a category
+// get a product for a shop
+// get single product details
+// delete a product
 
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
@@ -130,89 +130,122 @@ async function processPendingImages() {
 // Example: run every 5 seconds
 setInterval(processPendingImages, 5000);
 
-// export const createProduct = catchAsync(async (req: Request, res: Response) => {
-//     const userId = req.user?.id;
 
-//     if (!userId) {
-//         throw new NotFoundError('User context missing');
-//     }
+// update a product
+// get a product for a category
+// get a product for a shop
+// get single product details
+// delete a product
 
-//     let shop = req.shop;
-//     let category = req.category;
+// export const updateProduct = catchAsync(async (req: Request, res: Response) => {
+//     const { id } = req.params;
+//     const { name, description, price, category, shop } = req.body;
 
-//     const { name, description, price, isactive, imagepaths} = req.body;
-
-//     // use transaction
-//     await prisma.$transaction(async (tx) => {
-
-
-//     imagepaths.forEach(async (path: string) => {
-//         if (typeof path !== 'string' || !path.trim()) {
-//             throw new ConflictError('Each image path must be a non-empty string');
-//         }
-
-//         const result = await scoreImage(path, userId);
-
-
-//         await tx.productImage.create({
-//             data: {
-//                 productId: req.body.productId,
-//                 userId: userId,
-//                 imagePath: path,
-//                 phash: result.hash,
-//                 score: result.score,
-//                 status: result.status,
-//                 reasons: result.reasons,
-//                 cameraMake: result.make ?? null,
-//                 cameraModel: result.model ?? null,
-//             },
-//         });
-
-
-
-//         if (result.status === "REJECTED") {
-//             return res.status(400).json({
-//                 message:
-//                     "This image looks like it was taken from social media or is unclear. Please upload a camera photo or request manual review.",
-//                 reasons: result.reasons,
-//                 score: result.score,
-//             });
-//         }
-
-//         if (result.status === "REVIEW") {
-//             return res.status(200).json({
-//                 message:
-//                     "This image looks like it might be from social media or is unclear. It has been flagged for manual review, but you can proceed with listing the product.",
-//                 reasons: result.reasons,
-//                 score: result.score,
-//             });
-//         }
-
-
-
-//     const product = await tx.product.create({
+//     const product = await prisma.product.update({
+//         where: { id },
 //         data: {
 //             name,
 //             description,
 //             price,
-//             isActive: isactive,
-//             shopId: shop.id,
-//             categoryId: category.id,
+//             categoryId: category,
+//             shopId: shop,
 //         },
 //     });
 
-//     logger.info({
-//         event: 'product_created',
-//         requestId: req.requestId,
-//         productId: product.id,
-//         shopId: shop.id,
-//         categoryId: category.id,
-//     });
+//     if (!product) {
+//         throw new NotFoundError('Product not found');           
+//     })
 
-//     res.status(201).json(product);
+// });
 
-// }) });
+// get a product for a category
+export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {
+    let { id } = req.params;
 
-// // varify image 
+    // Ensure id is a string
+    if (Array.isArray(id)) {
+        id = id[0];
+    }
+    if (!id || typeof id !== "string") {
+        throw new NotFoundError("Invalid category id");
+    }
+
+    const products = await prisma.product.findMany({
+        where: { categoryId: id, status: "APPROVED" },
+        include: { images: true },
+    });
+
+    res.status(200).json(products);
+    
+});
 
 
+// get a product for a shop
+export const getProductsByShop = catchAsync(async (req: Request, res: Response) => {
+    let { id } = req.params;
+
+    // Ensure id is a string
+    if (Array.isArray(id)) {
+        id = id[0];
+    }
+    if (!id || typeof id !== "string") {
+        throw new NotFoundError("Invalid shop id");
+    }
+
+    const products = await prisma.product.findMany({
+        where: { shopId: id, status: "APPROVED" },
+        include: { images: true },
+    });
+
+    res.status(200).json(products);
+});
+
+// get single product details
+export const getProductDetails = catchAsync(async (req: Request, res: Response) => {
+    let { id } = req.params;
+
+    // Ensure id is a string
+    if (Array.isArray(id)) {
+        id = id[0];
+    }
+    if (!id || typeof id !== "string") {
+        throw new NotFoundError("Invalid product id");
+    }
+
+    const product = await prisma.product.findUnique({
+        where: { id },
+        include: { images: true, shop: true, category: true },
+    });
+
+    if (!product || product.status !== "APPROVED") {
+        throw new NotFoundError("Product not found");
+    }
+
+    res.status(200).json(product);
+    
+});
+
+// delete a product
+export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
+    let { id } = req.params;
+    // Ensure id is a string
+    if (Array.isArray(id)) {
+        id = id[0];
+    }
+    if (!id || typeof id !== "string") {
+        throw new NotFoundError("Invalid product id");
+    }
+    
+    const product = await prisma.product.findUnique({
+        where: { id },
+    });
+
+    if (!product) {
+        throw new NotFoundError("Product not found");
+    }
+    
+    await prisma.product.delete({
+        where: { id },
+    });
+    res.status(200).json({ message: "Product deleted successfully" });
+});
