@@ -12,16 +12,6 @@ export const telegramLoginSchema = z.object({
 
   });
 
-export const sellerRequestSchema = z.object({
-  shopName: z.string().trim().min(2, 'shopName is required'),
-  campusLocation: z.string().trim().optional(),
-  categories: z.array(z.string().trim().min(1)).min(1, 'categories must have at least one item'),
-  mainPhone: z.string().trim().min(5, 'mainPhone is required'),
-  secondaryPhone: z.string().trim().optional(),
-  idImage: z.string().trim().min(3, 'idImage is required'),
-  agreedToRules: z.literal(true, {
-    message: 'agreedToRules must be true',
-  }),
-});
+
 
 

@@ -49,10 +49,10 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 app.use('/auth', authRouter);
-app.use('/', userRouter);
-app.use('/', sellerRouter);
-app.use('/', categoryRouter);
-app.use('/', productRouter);
+app.use('/api/', userRouter);
+app.use('/api/', sellerRouter);
+app.use('/api/', categoryRouter);
+app.use('/api/', productRouter);
 // app.use('/admin', adminRouter);
 
 

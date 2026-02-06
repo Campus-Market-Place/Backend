@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validate.middleware.js';
-import { sellerRequestSchema } from '../validation/auth.validation.js';
 import { submitSellerRequest } from '../controllers/seller.controller.js';
+import { sellerRequestSchema } from '../validation/seller.validation.js';
 
 export const sellerRouter = Router();
 
