@@ -33,8 +33,8 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
                 price,
                 isActive: false, // activate only after scoring
                 status: "PENDING",
-                shopId: req.shop.id,
-                categoryId: req.category.id,
+                shopId: req.shop,
+                categoryId: req.category,
             },
         });
 
@@ -54,8 +54,8 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
             event: 'product_created',
             requestId: req.requestId,
             productId: product.id,
-            shopId: req.shop.id,
-            categoryId: req.category.id,
+            shopId: req.shop,
+            categoryId: req.category,
         });
 
         res.status(201).json({

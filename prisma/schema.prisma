@@ -36,53 +36,67 @@ model User {
 
 // --------------------- Seller Profile ---------------------
 model SellerProfile {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  shopName       String
-  campusLocation String?
-  categories     String[] // enum strings
-  mainPhone      String
-  secondaryPhone String?
-  isOpen         Boolean      @default(true)
-  socialMedias   SocialMedia?
-  idImage        String
-  agreedToRules  Boolean      @default(false)
-  approvedAt     DateTime?
-  rating         Float        @default(0) // average across all products
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deletedAt      DateTime?
+  id     String @id @default(uuid())
+  userId String @unique
+
+  studentId  String @unique
+  campusLocation     String
+  verificationStatus SellerStatuses     @default(PENDING)
+  verificationScore  Int?
+  verificationLevel  VerificationLevel?
+  frontImageHash     String
+  backImageHash      String
+  verificationReason String?
+  mainPhone          String
+  secondaryPhone     String?
+
+  telegram        String?
+  instagram       String?
+  tiktok          String?
+  other           String[]
+  agreedToRules Boolean      @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   shop            Shop?
   notifications   Notification[]
   interactions    Interaction[]
-  reportsReceived Report[]            @relation("SellerReports")
+  reportsReceived Report[]       @relation("SellerReports")
   monthlyStats    MonthlyStats?
-  verifications   SellerVerification?
-  followers       Follow[]            @relation("SellerProfileFollowers")
+  followers       Follow[]       @relation("SellerProfileFollowers")
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([shopName])
 }
 
-// --------------------- Social Media ---------------------
-model SocialMedia {
-  id              String  @id @default(uuid())
-  telegram        String?
-  instagram       String?
-  tiktok          String?
-  other           String?
-  sellerProfileId String  @unique
-
-  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
+enum VerificationLevel {
+  BASIC
+  VERIFIED
+  FLAGGED
 }
+
+enum SellerStatuses {
+  PENDING
+  APPROVED
+  FLAGGED
+}
+
+
 
 // --------------------- Shop ---------------------
 model Shop {
-  id       String  @id @default(uuid())
-  sellerId String  @unique
-  bio      String?
+  id         String  @id @default(uuid())
+  sellerId   String  @unique
+  shopName   String
+  categoryId String
+  bio        String
+
+  isOpen    Boolean   @default(true)
+  rating    Float     @default(0) // average across all products
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   seller    SellerProfile @relation(fields: [sellerId], references: [id])
   products  Product[]
@@ -91,6 +105,7 @@ model Shop {
   createdAt DateTime @default(now())
 
   @@index([sellerId])
+  @@index([isOpen])
 }
 
 // --------------------- Category ---------------------
@@ -230,21 +245,6 @@ model MonthlyStats {
   @@index([month, year])
 }
 
-// --------------------- Seller Verification ---------------------
-model SellerVerification {
-  id                String    @id @default(uuid())
-  studentIdNumber   String
-  extractedName     String
-  extractedCollege  String
-  studyLevel        String
-  qrPayload         String
-  verificationScore Float
-  verificationLevel Int
-  verifiedAt        DateTime?
-  sellerProfileId   String    @unique
-
-  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
-}
 
 // --------------------- Follow ---------------------
 model Follow {

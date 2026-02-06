@@ -1,153 +1,116 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma.js';
-import { catchAsync } from '../middleware/wrapper.js';
-import { ConflictError, NotFoundError } from '../errors/apperror.js';
-import { logger } from '../lib/logger.js';
-import { Roles, SellerStatuses } from '../constants/auth.js';
+import { Request, Response } from "express";
+import { prisma } from "../lib/prisma.js";
+import { catchAsync } from "../middleware/wrapper.js";
+import { NotFoundError, ConflictError } from "../errors/apperror.js";
+import { Roles, SellerStatuses } from "../constants/auth.js";
+import { verifySeller } from "../controllers/sellerVarification/verification.service.js";
+import { logger } from "../lib/logger.js";
 
 export const submitSellerRequest = catchAsync(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new NotFoundError('User context missing');
-  }
+    if (!req.user) throw new NotFoundError("User context missing");
 
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    include: { sellerProfile: true },
-  });
+    const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        include: { sellerProfile: true },
+    });
 
-  if (!user || user.deletedAt) {
-    throw new NotFoundError('User not found');
-  }
+    if (!user || user.deletedAt) throw new NotFoundError("User not found");
+    if (user.role === Roles.SELLER || user.sellerStatus === SellerStatuses.APPROVED) {
+        throw new ConflictError("User is already a seller");
+    }
 
-  if (user.role === Roles.SELLER || user.sellerStatus === SellerStatuses.APPROVED) {
-    throw new ConflictError('User is already a seller');
-  }
+    const { shopName, discription, campusLocation, categories, mainPhone, secondaryPhone, frontIdImage, backIdImage, agreedToRules, instagram, telegram, tiktok, other } = req.body;
 
-  const data = {
-    shopName: req.body.shopName,
-    campusLocation: req.body.campusLocation,
-    categories: req.body.categories,
-    mainPhone: req.body.mainPhone,
-    secondaryPhone: req.body.secondaryPhone,
-    idImage: req.body.idImage,
-    agreedToRules: req.body.agreedToRules,
-    deletedAt: null,
-  };
+    if (!frontIdImage || !backIdImage) {
+        return res.status(400).json({ message: "Both front and back ID images are required" });
+    }
 
-  const sellerProfile = user.sellerProfile
-    ? await prisma.sellerProfile.update({
-        where: { id: user.sellerProfile.id },
-        data,
-      })
-    : await prisma.sellerProfile.create({
-        data: {
-          ...data,
-          userId: user.id,
-        },
-      });
+    if (!agreedToRules) {
+        return res.status(400).json({ message: "You must agree to the rules to become a seller" });
+    }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { sellerStatus: SellerStatuses.APPROVED },
-  });
+    // campusLocation  - block-dormnumber
+    if (campusLocation.split("-").length !== 2) {
+        return res.status(400).json({ message: "Invalid campus location format. Expected 'block-dormnumber'" });
+    }
+    const [block, dormNumber] = campusLocation.split("-");
+    if (!block || !dormNumber) {
+        return res.status(400).json({ message: "Invalid campus location. Block and dorm number are required" });
+    }
 
-  logger.info({
-    event: 'seller_request_submitted',
-    requestId: req.requestId,
-    userId: user.id,
-    sellerProfileId: sellerProfile.id,
-  });
 
-  res.status(201).json({
-    message: 'Seller request submitted',
-    sellerStatus: SellerStatuses.APPROVED,
-  });
+
+    // 1️⃣ Verify ID images synchronously
+    const verificationResult = await verifySeller(user.id, frontIdImage, backIdImage);
+
+
+
+    // 2️⃣ Create or update sellerProfile in a transaction
+    const sellerProfile = await prisma.$transaction(async tx => {
+        const profile = user.sellerProfile
+            ? await tx.sellerProfile.update({
+                where: { id: user.sellerProfile.id },
+                data: {
+                    campusLocation,
+                    mainPhone,
+                    secondaryPhone,
+                    agreedToRules,
+                    verificationStatus: SellerStatuses.APPROVED,
+                    verificationScore: verificationResult.score,
+                    verificationLevel: verificationResult.level,
+                    frontImageHash: verificationResult.frontHash,
+                    backImageHash: verificationResult.backHash,
+                },
+            })
+            : await tx.sellerProfile.create({
+                data: {
+                    userId: user.id,
+                    studentId: verificationResult.studentId,
+                    campusLocation,
+                    instagram: instagram || null,
+                    telegram: telegram || null,
+                    tiktok: tiktok || null,
+                    other: Array.isArray(other) ? other : (other ? [other] : []),
+                    mainPhone,
+                    secondaryPhone,
+                    agreedToRules,
+                    verificationStatus: SellerStatuses.APPROVED,
+                    verificationScore: verificationResult.score,
+                    verificationLevel: verificationResult.level,
+                    frontImageHash: verificationResult.frontHash,
+                    backImageHash: verificationResult.backHash,
+                },
+            });
+
+        await tx.user.update({
+            where: { id: user.id },
+            data: { role: Roles.SELLER, sellerStatus: SellerStatuses.APPROVED },
+        });
+
+        await tx.shop.create({
+            data: {
+                shopName,
+                categoryId: categories,
+                sellerId: profile.id,
+                bio: discription,
+            },
+        });
+
+        return profile;
+    });
+
+    logger.info({
+        event: "seller_request_verified",
+        requestId: req.requestId,
+        userId: user.id,
+        sellerProfileId: sellerProfile.id,
+        verificationScore: verificationResult.score,
+        verificationLevel: verificationResult.level,
+    });
+
+    res.status(201).json({
+        message: "Seller request submitted and verified successfully",
+        sellerStatus: SellerStatuses.APPROVED,
+        verificationLevel: verificationResult.level,
+    });
 });
-
-// export const approveSellerRequest = catchAsync(async (req: Request, res: Response) => {
-//   const userId = req.params.userId;
-
-//   const user = await prisma.user.findUnique({
-//     where: { id: userId },
-//     include: { sellerProfile: true },
-//   });
-
-//   if (!user || user.deletedAt) {
-//     throw new NotFoundError('User not found');
-//   }
-
-//   if (user.sellerStatus !== SellerStatuses.PENDING) {
-//     throw new ConflictError('Seller request is not pending');
-//   }
-
-//   await prisma.user.update({
-//     where: { id: user.id },
-//     data: {
-//       role: Roles.SELLER,
-//       sellerStatus: SellerStatuses.APPROVED,
-//     },
-//   });
-
-//   if (user.sellerProfile) {
-//     await prisma.sellerProfile.update({
-//       where: { id: user.sellerProfile.id },
-//       data: { approvedAt: new Date(), deletedAt: null },
-//     });
-//   }
-
-//   logger.info({
-//     event: 'seller_request_approved',
-//     requestId: req.requestId,
-//     userId: user.id,
-//   });
-
-//   res.status(200).json({
-//     message: 'Seller request approved',
-//     role: Roles.SELLER,
-//     sellerStatus: SellerStatuses.APPROVED,
-//   });
-// });
-
-// export const rejectSellerRequest = catchAsync(async (req: Request, res: Response) => {
-//   const userId = req.params.userId;
-
-//   if (!userId) {
-//     throw new NotFoundError('User ID parameter missing');
-//   }
-
-//   const user = await prisma.user.findUnique({
-//     where: { id: userId},
-//     include: { sellerProfile: true },
-//   });
-
-//   if (!user || user.deletedAt) {
-//     throw new NotFoundError('User not found');
-//   }
-
-// //   if (user.sellerStatus !== SellerStatuses.PENDING) {
-// //     throw new ConflictError('Seller request is not pending');
-// //   }
-
-//   await prisma.user.update({
-//     where: { id: user.id },
-//     data: { sellerStatus: SellerStatuses.SUSPENDED },
-//   });
-
-//   if (user.) {
-//     await prisma.sellerProfile.update({
-//       where: { id: user.sellerProfile.id },
-//       data: { deletedAt: new Date() },
-//     });
-//   }
-
-//   logger.info({
-//     event: 'seller_request_rejected',
-//     requestId: req.requestId,
-//     userId: user.id,
-//   });
-
-//   res.status(200).json({
-//     message: 'Seller request rejected',
-//     sellerStatus: SellerStatuses.NONE,
-//   });
-// });
