@@ -11,6 +11,15 @@ declare global {
       };
       session?: any;
       requestId?: string;      // request ID for tracking
+
+      context?: {
+      models: {
+        shop: any; // replace when you have actual types
+        category : any;
+      };
+    };
+    shop?: any;
+    category?: any;
     }
   }
 }

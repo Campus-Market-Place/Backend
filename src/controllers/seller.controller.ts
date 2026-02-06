@@ -108,42 +108,46 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
 //   });
 // });
 
-export const rejectSellerRequest = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.params.userId;
+// export const rejectSellerRequest = catchAsync(async (req: Request, res: Response) => {
+//   const userId = req.params.userId;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { sellerProfile: true },
-  });
-
-  if (!user || user.deletedAt) {
-    throw new NotFoundError('User not found');
-  }
-
-//   if (user.sellerStatus !== SellerStatuses.PENDING) {
-//     throw new ConflictError('Seller request is not pending');
+//   if (!userId) {
+//     throw new NotFoundError('User ID parameter missing');
 //   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { sellerStatus: SellerStatuses.SUSPENDED },
-  });
+//   const user = await prisma.user.findUnique({
+//     where: { id: userId},
+//     include: { sellerProfile: true },
+//   });
 
-  if (user.sellerProfile) {
-    await prisma.sellerProfile.update({
-      where: { id: user.sellerProfile.id },
-      data: { deletedAt: new Date() },
-    });
-  }
+//   if (!user || user.deletedAt) {
+//     throw new NotFoundError('User not found');
+//   }
 
-  logger.info({
-    event: 'seller_request_rejected',
-    requestId: req.requestId,
-    userId: user.id,
-  });
+// //   if (user.sellerStatus !== SellerStatuses.PENDING) {
+// //     throw new ConflictError('Seller request is not pending');
+// //   }
 
-  res.status(200).json({
-    message: 'Seller request rejected',
-    sellerStatus: SellerStatuses.NONE,
-  });
-});
+//   await prisma.user.update({
+//     where: { id: user.id },
+//     data: { sellerStatus: SellerStatuses.SUSPENDED },
+//   });
+
+//   if (user.) {
+//     await prisma.sellerProfile.update({
+//       where: { id: user.sellerProfile.id },
+//       data: { deletedAt: new Date() },
+//     });
+//   }
+
+//   logger.info({
+//     event: 'seller_request_rejected',
+//     requestId: req.requestId,
+//     userId: user.id,
+//   });
+
+//   res.status(200).json({
+//     message: 'Seller request rejected',
+//     sellerStatus: SellerStatuses.NONE,
+//   });
+// });

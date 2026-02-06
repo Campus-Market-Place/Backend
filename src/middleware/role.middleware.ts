@@ -28,3 +28,22 @@ export const requireAdmin = () => {
     next();
   };
 };
+
+
+// is seller 
+export const requireSeller = () => {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
+    if (!req.user.role || req.user.role !== 'SELLER') {
+        throw new UnauthorizedError('Seller role required');
+    }
+
+    if (req.user.sellerStatus !== 'APPROVED') {
+      throw new ForbiddenError('Seller access required');
+    }
+    next();
+  };
+}

@@ -14,74 +14,75 @@ datasource db {
 
 // --------------------- User ---------------------
 model User {
-  id               String   @id @default(uuid())
-  telegramId       String   @unique
-  username         String   
-  role             Role     @default(USER)
+  id               String       @id @default(uuid())
+  telegramId       String       @unique
+  username         String
+  role             Role         @default(USER)
   sellerStatus     SellerStatus @default(NONE)
   suspensionReason String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   deletedAt        DateTime?
 
-  sellerProfile    SellerProfile?
-  interactions     Interaction[]
-  reportsMade      Report[]  @relation("UserReports")
-  follows          Follow[]
-  reviews          Review[]
+  sellerProfile SellerProfile?
+  interactions  Interaction[]
+  reportsMade   Report[]       @relation("UserReports")
+  follows       Follow[]
+  reviews       Review[]
+  productImages ProductImage[] // Added relation to ProductImage
 
   @@index([telegramId])
 }
 
 // --------------------- Seller Profile ---------------------
 model SellerProfile {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  shopName          String
-  campusLocation    String?
-  categories        String[] // enum strings
-  mainPhone         String
-  secondaryPhone    String?
-  isOpen            Boolean  @default(true)
-  socialMedias      SocialMedia?
-  idImage           String
-  agreedToRules     Boolean  @default(false)
-  approvedAt        DateTime?
-  rating            Float    @default(0) // average across all products
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  deletedAt         DateTime?
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  shopName       String
+  campusLocation String?
+  categories     String[] // enum strings
+  mainPhone      String
+  secondaryPhone String?
+  isOpen         Boolean      @default(true)
+  socialMedias   SocialMedia?
+  idImage        String
+  agreedToRules  Boolean      @default(false)
+  approvedAt     DateTime?
+  rating         Float        @default(0) // average across all products
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
-  shop              Shop?
-  notifications     Notification[]
-  interactions      Interaction[]
-  reportsReceived   Report[] @relation("SellerReports")
-  monthlyStats      MonthlyStats?
-  verifications     SellerVerification?
-  followers         Follow[] @relation("SellerProfileFollowers")
+  shop            Shop?
+  notifications   Notification[]
+  interactions    Interaction[]
+  reportsReceived Report[]            @relation("SellerReports")
+  monthlyStats    MonthlyStats?
+  verifications   SellerVerification?
+  followers       Follow[]            @relation("SellerProfileFollowers")
 
-  user              User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([shopName])
 }
 
 // --------------------- Social Media ---------------------
 model SocialMedia {
-  id        String  @id @default(uuid())
-  telegram  String?
-  instagram String?
-  tiktok    String?
-  other     String?
-  sellerProfileId String @unique
+  id              String  @id @default(uuid())
+  telegram        String?
+  instagram       String?
+  tiktok          String?
+  other           String?
+  sellerProfileId String  @unique
 
   sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
 }
 
 // --------------------- Shop ---------------------
 model Shop {
-  id        String   @id @default(uuid())
-  sellerId  String   @unique
-  bio       String?
+  id       String  @id @default(uuid())
+  sellerId String  @unique
+  bio      String?
 
   seller    SellerProfile @relation(fields: [sellerId], references: [id])
   products  Product[]
@@ -94,35 +95,38 @@ model Shop {
 
 // --------------------- Category ---------------------
 model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  icon      String?
+  id   String  @id @default(uuid())
+  name String  @unique
+  icon String?
 
-  products  Product[]
+  products Product[]
 
   @@index([name])
 }
 
 // --------------------- Product ---------------------
 model Product {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   name        String
-  description String?
+  description String
   price       Float
-  stock       Int
+  stock       Int?
 
-  categoryId  String
-  shopId      String
+  categoryId String
+  shopId     String
 
-  isActive    Boolean  @default(true)
+  isActive Boolean @default(true)
+  varified Boolean @default(false)
 
-  category    Category @relation(fields: [categoryId], references: [id])
-  shop        Shop     @relation(fields: [shopId], references: [id])
+  status ImageStatus @default(PENDING)
 
-  images      ProductImage[]
-  reviews     Review[]
+  category Category @relation(fields: [categoryId], references: [id])
+  shop     Shop     @relation(fields: [shopId], references: [id])
 
-  createdAt   DateTime @default(now())
+  images  ProductImage[]
+  reviews Review[]
+
+  createdAt DateTime @default(now())
 
   @@index([shopId])
   @@index([categoryId])
@@ -130,15 +134,33 @@ model Product {
 
 // --------------------- Product Images ---------------------
 model ProductImage {
-  id         String   @id @default(uuid())
-  productId  String
-  url        String
-  exifData   Json?    // EXIF metadata
-  verified   Boolean  @default(false)
+  id          String      @id @default(uuid())
+  productId   String
+  userId      String
+  imagePath   String
+  phash       String
+  score       Int
+  status      ImageStatus
+  reviewed    Boolean     @default(false)
+  reasons     String[]
+  cameraMake  String?
+  cameraModel String?
+  createdAt   DateTime    @default(now())
 
-  product    Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   @@index([productId])
+  @@index([userId])
+  @@index([phash])
+  @@index([status])
+}
+
+enum ImageStatus {
+  APPROVED
+  PENDING
+  REVIEW
+  REJECTED
 }
 
 // --------------------- Report ---------------------
@@ -150,8 +172,8 @@ model Report {
   reporterId String
   sellerId   String
 
-  reporter   User           @relation("UserReports", fields: [reporterId], references: [id])
-  seller     SellerProfile  @relation("SellerReports", fields: [sellerId], references: [id])
+  reporter User          @relation("UserReports", fields: [reporterId], references: [id])
+  seller   SellerProfile @relation("SellerReports", fields: [sellerId], references: [id])
 
   @@index([sellerId])
   @@index([reporterId])
@@ -160,15 +182,15 @@ model Report {
 
 // --------------------- Interaction ---------------------
 model Interaction {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   action    InteractionType
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
 
-  userId           String?
-  sellerProfileId  String
+  userId          String?
+  sellerProfileId String
 
-  user            User?          @relation(fields: [userId], references: [id])
-  sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id])
+  user          User?         @relation(fields: [userId], references: [id])
+  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
 
   @@index([sellerProfileId])
   @@index([userId])
@@ -178,12 +200,12 @@ model Interaction {
 
 // --------------------- Notification ---------------------
 model Notification {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   message   String
   type      NotificationType
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
   sellerProfileId String
   sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id])
 
@@ -194,15 +216,15 @@ model Notification {
 
 // --------------------- Monthly Stats ---------------------
 model MonthlyStats {
-  id             String   @id @default(uuid())
-  month          Int      // 1-12
-  year           Int
-  followersGained Int     @default(0)
-  reportsCount    Int     @default(0)
-  contactClicks   Int     @default(0)
-  socialMediaChecks Int   @default(0)
+  id                String @id @default(uuid())
+  month             Int // 1-12
+  year              Int
+  followersGained   Int    @default(0)
+  reportsCount      Int    @default(0)
+  contactClicks     Int    @default(0)
+  socialMediaChecks Int    @default(0)
 
-  sellerProfileId String @unique
+  sellerProfileId String        @unique
   sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id])
 
   @@index([month, year])
@@ -210,31 +232,31 @@ model MonthlyStats {
 
 // --------------------- Seller Verification ---------------------
 model SellerVerification {
-  id               String   @id @default(uuid())
-  studentIdNumber  String
-  extractedName    String
-  extractedCollege String
-  studyLevel       String
-  qrPayload        String
+  id                String    @id @default(uuid())
+  studentIdNumber   String
+  extractedName     String
+  extractedCollege  String
+  studyLevel        String
+  qrPayload         String
   verificationScore Float
   verificationLevel Int
-  verifiedAt       DateTime?
-  sellerProfileId  String  @unique
+  verifiedAt        DateTime?
+  sellerProfileId   String    @unique
 
-  sellerProfile    SellerProfile @relation(fields: [sellerProfileId], references: [id])
+  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
 }
 
 // --------------------- Follow ---------------------
 model Follow {
-  id               String   @id @default(uuid())
-  userId           String
-  shopId           String
-  sellerProfileId  String
-  createdAt        DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String
+  shopId          String
+  sellerProfileId String
+  createdAt       DateTime @default(now())
 
-  user             User @relation(fields: [userId], references: [id])
-  shop             Shop @relation(fields: [shopId], references: [id])
-  sellerProfile    SellerProfile @relation("SellerProfileFollowers", fields: [sellerProfileId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  shop          Shop          @relation(fields: [shopId], references: [id])
+  sellerProfile SellerProfile @relation("SellerProfileFollowers", fields: [sellerProfileId], references: [id])
 
   @@unique([userId, shopId])
   @@index([shopId])
@@ -245,15 +267,15 @@ model Follow {
 
 // --------------------- Review ---------------------
 model Review {
-  id         String   @id @default(uuid())
-  userId     String
-  productId  String
-  rating     Int      // 1-5
-  comment    String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  rating    Int // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
 
-  user       User    @relation(fields: [userId], references: [id])
-  product    Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   @@unique([userId, productId]) // one review per product per user
   @@index([productId])
