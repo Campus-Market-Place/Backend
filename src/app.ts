@@ -5,12 +5,14 @@ import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config.js';
 import { requestLogger } from './middleware/loggemiddleware.js';
-import { authRouter } from './router/auth.router.js';
-import { sellerRouter } from './router/seller.router.js';
-import { adminRouter } from './router/admin.router.js';
-import { userRouter } from './router/user.router.js';
+import { authRouter } from './routes/auth.router.js';
+import { sellerRouter } from './routes/seller.router.js';
+// import { adminRouter } from './routers/admin.router.js';
+import { userRouter } from './routes/user.router.js';
 import { openApiSpec } from './docs/openapi.js';
 import { errorHandler } from './errors/apperror.js';
+import { categoryRouter } from './routes/category.router.js';
+import { productRouter } from './routes/product.router.js';
 
 
 
@@ -49,7 +51,9 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 app.use('/auth', authRouter);
 app.use('/', userRouter);
 app.use('/', sellerRouter);
-app.use('/admin', adminRouter);
+app.use('/', categoryRouter);
+app.use('/', productRouter);
+// app.use('/admin', adminRouter);
 
 
 app.use(errorHandler);
