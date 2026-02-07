@@ -2,6 +2,20 @@ import "express";
 
 declare global {
   namespace Express {
+
+    namespace Multer {
+      interface File {
+        fieldname: string;
+        originalname: string;
+        encoding: string;
+        mimetype: string;
+        size: number;
+        destination: string;
+        filename: string;
+        path: string;
+        buffer: Buffer;
+      }
+    }
     interface Request {
       user?: {
         id: string;
@@ -13,13 +27,13 @@ declare global {
       requestId?: string;      // request ID for tracking
 
       context?: {
-      models: {
-        shop: any; // replace when you have actual types
-        category : any;
+        models: {
+          shop: any; // replace when you have actual types
+          category: any;
+        };
       };
-    };
-    shop?: any;
-    category?: any;
+      shop?: any;
+      category?: any;
     }
   }
 }

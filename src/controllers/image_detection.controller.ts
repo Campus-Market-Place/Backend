@@ -1,14 +1,10 @@
-
-
 import express from "express";
 import multer from "multer";
 import sharp from "sharp";
 import imghash from "imghash";
 import { exiftool } from "exiftool-vendored";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma.js';
 
-
-const prisma = new PrismaClient();
 const app = express();
 const upload = multer({ dest: "uploads/" });
 

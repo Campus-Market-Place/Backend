@@ -11,120 +11,124 @@ import { catchAsync } from '../middleware/wrapper.js';
 import { ConflictError, NotFoundError } from '../errors/apperror.js';
 import { logger } from '../lib/logger.js';
 import { Roles, SellerStatuses } from '../constants/auth.js';
-import multer from "multer";
-import { scoreImage } from './image_detection.controller.js';
 
-const upload = multer({ dest: "uploads/" });
+import { scoreImage } from "./image_detection.controller.js";
+import { ImageStatus } from "../constants/image.js";
+import { getUploadedFiles } from '../lib/uplode_file.js';
+
+
 
 
 export const createProduct = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) throw new NotFoundError("User context missing");
+  const userId = req.user?.id;
+  if (!userId) throw new NotFoundError("User context missing");
 
-    const { name, description, price, imagepaths } = req.body;
+  const files = getUploadedFiles(req);
 
+  if (files.length === 0) {
+    throw new NotFoundError("No images uploaded");
+  }
 
-    await prisma.$transaction(async (tx) => {
+  const imagepaths = files.map((file) => file.path);
 
-        const product = await tx.product.create({
-            data: {
-                name,
-                description,
-                price,
-                isActive: false, // activate only after scoring
-                status: "PENDING",
-                shopId: req.shop,
-                categoryId: req.category,
-            },
-        });
+  const { name, description, price } = req.body;
 
-        // Create images as PENDING
-        const imagesData = imagepaths.map((path: string) => ({
-            productId: product.id,
-            userId,
-            imagePath: path,
-            status: "PENDING",
-        }));
+  await prisma.$transaction(async (tx) => {
 
-        await tx.productImage.createMany({ data: imagesData });
-
-
-
-        logger.info({
-            event: 'product_created',
-            requestId: req.requestId,
-            productId: product.id,
-            shopId: req.shop,
-            categoryId: req.category,
-        });
-
-        res.status(201).json({
-            message: "Product created. Images will be verified shortly.",
-            productId: product.id,
-        });
+    const product = await tx.product.create({
+      data: {
+        name,
+        description,
+        price,
+        isActive: false, // activate only after scoring
+        status: "REVIEW", // default to REVIEW until images are scored
+        shopId: req.shop,
+        categoryId: req.category,
+      },
     });
+
+    // Create images as PENDING
+    const imagesData = imagepaths.map((path: string) => ({
+      productId: product.id,
+      userId,
+      imagePath: path,
+      status: "PENDING" as ImageStatus,
+      phash: "", // or null, depending on your schema
+      score: 0, // or null, depending on your schema
+    }));
+
+    await tx.productImage.createMany({ data: imagesData });
+
+    logger.info({
+      event: 'product_created',
+      requestId: req.requestId,
+      productId: product.id,
+      shopId: req.shop,
+      categoryId: req.category,
+    });
+
+    res.status(201).json({
+      message: "Product created. Images will be verified shortly.",
+      productId: product.id,
+    });
+  });
 
 });
 
-
-
-
-
 // pseudo worker using setInterval / queue
 async function processPendingImages() {
-    const pendingImages = await prisma.productImage.findMany({
-        where: { status: "PENDING" },
-    });
+  const pendingImages = await prisma.productImage.findMany({
+    where: { status: "PENDING" },
+  });
 
-    for (const img of pendingImages) {
-        try {
-            const result = await scoreImage(img.imagePath, img.userId);
+  for (const img of pendingImages) {
+    try {
+      const result = await scoreImage(img.imagePath, img.userId);
 
-            await prisma.productImage.update({
-                where: { id: img.id },
-                data: {
-                    score: result.score,
-                    status: result.status,
-                    reasons: result.reasons,
-                    cameraMake: result.make ?? null,
-                    cameraModel: result.model ?? null,
+      await prisma.productImage.update({
+        where: { id: img.id },
+        data: {
+          score: result.score,
+          status: result.status,
+          reasons: result.reasons,
+          cameraMake: result.make ?? null,
+          cameraModel: result.model ?? null,
+        },
+      });
 
-                },
-            });
+      // Update Product status based on images
+      const productImages = await prisma.productImage.findMany({
+        where: { productId: img.productId },
+      });
 
-            // Update Product status based on images
-            const productImages = await prisma.productImage.findMany({
-                where: { productId: img.productId },
-            });
+      const allRejected = productImages.every((i) => i.status === "REJECTED");
+      const anyReview = productImages.some((i) => i.status === "REVIEW");
+      const allApproved = productImages.every((i) => i.status === "APPROVED");
 
-            const allRejected = productImages.every(i => i.status === "REJECTED");
-            const anyReview = productImages.some(i => i.status === "REVIEW");
-            const allApproved = productImages.every(i => i.status === "APPROVED");
+      type ProductStatus = "PENDING" | "REJECTED" | "REVIEW" | "APPROVED";
+      let newStatus: ProductStatus = "PENDING";
+      if (allRejected) newStatus = "REJECTED";
+      else if (anyReview) newStatus = "REVIEW";
+      else if (allApproved) newStatus = "APPROVED";
 
-            type ProductStatus = "PENDING" | "REJECTED" | "REVIEW" | "APPROVED";
-            let newStatus: ProductStatus = "PENDING";
-            if (allRejected) newStatus = "REJECTED";
-            else if (anyReview) newStatus = "REVIEW";
-            else if (allApproved) newStatus = "APPROVED";
+      await prisma.product.update({
+        where: { id: img.productId },
+        data: { status: newStatus },
+      });
 
-            await prisma.product.update({
-                where: { id: img.productId },
-                data: { status: newStatus },
-            });
+      logger.info({
+        event: 'image_processed',
+        requestId: '', // No request context in worker
+        imageId: img.id,
+        productId: img.productId,
+        status: result.status,
+        score: result.score,
+      });
 
-            logger.info({
-                event: 'image_processed',
-                requestId: '', // No request context in worker
-                imageId: img.id,
-                productId: img.productId,
-                status: result.status,
-                score: result.score,
-            });
-
-        } catch (err) {
-            console.error("Image scoring failed:", img.id, err);
-        }
+    } catch (err) {
+      console.error("Image scoring failed:", img.id, err);
     }
+  }
 }
 
 // Example: run every 5 seconds

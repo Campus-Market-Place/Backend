@@ -30,7 +30,8 @@ export const validateShop = () => {
 export const validateCategory = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
 
-    const { categoryId } = req.params || req.body;
+    const { categoryId } = req.body;
+
 
     if (!categoryId || Array.isArray(categoryId)) {
             throw new ConflictError('category id is required and must be a string');

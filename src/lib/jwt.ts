@@ -8,8 +8,8 @@ export interface AuthTokenPayload extends JwtPayload {
 }
 
 export function signJwt(payload: AuthTokenPayload) {
-  return jwt.sign(payload, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn,
+  return jwt.sign(payload, config.jwtSecret as string, {
+    expiresIn: config.jwtExpiresIn as string | number,
   });
 }
 
