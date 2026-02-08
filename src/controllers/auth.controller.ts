@@ -29,7 +29,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
         telegramId: telegram_id,
         username,
         role: Roles.USER,
-        sellerStatus: SellerStatuses.NONE,
+
       },
     });
 
@@ -65,7 +65,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       telegram_id : user.telegramId,
       username: user.username,
       role: user.role,
-      sellerStatus: user.sellerStatus,
+
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
@@ -95,7 +95,6 @@ export const me = catchAsync(async (req: Request, res: Response) => {
     telegram_id : user.telegramId,
     username: user.username,
     role: user.role,
-    sellerStatus: user.sellerStatus,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     sellerProfile,

@@ -42,7 +42,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
         price,
         isActive: false, // activate only after scoring
         status: "REVIEW", // default to REVIEW until images are scored
-        shopId: req.shop,
+        shopId: req.shop.id,
         categoryId: req.category,
       },
     });
@@ -63,7 +63,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
       event: 'product_created',
       requestId: req.requestId,
       productId: product.id,
-      shopId: req.shop,
+      shopId: req.shop.id,
       categoryId: req.category,
     });
 
@@ -164,92 +164,164 @@ setInterval(processPendingImages, 5000);
 
 // get a product for a category
 export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+  let { id } = req.params;
+  let { page = "1", limit = "20" } = req.query;
 
-    // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
-    if (!id || typeof id !== "string") {
-        throw new NotFoundError("Invalid category id");
-    }
+  // Ensure id is a string
+  if (Array.isArray(id)) {
+    id = id[0];
+  }
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid category id");
+  }
 
-    const products = await prisma.product.findMany({
-        where: { categoryId: id, status: "APPROVED" },
-        include: { images: true },
-    });
 
-    res.status(200).json(products);
-    
+  const products = await prisma.product.findMany({
+    where: {
+      categoryId: id, status: "APPROVED", isActive: true, shop: {
+        status: 'APPROVED'
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      categoryId: true,
+      shopId: true,
+      varified: true,
+      status: true,
+      ratingAverage: true,
+      images: {
+        where: { status: "APPROVED" },
+        select: { imagePath: true },
+        take: 1, // Get only one approved image for preview
+      },
+    },
+    skip: (parseInt(page as string) - 1) * parseInt(limit as string),
+    take: parseInt(limit as string),
+  });
+
+
+
+  logger.info({
+    event: 'products_by_category_fetched',
+    requestId: req.requestId,
+    categoryId: id,
+    page,
+    limit,
+  });
+
+
+  res.status(200).json({ data: { products }, message: "Products fetched successfully" });
+
 });
 
-
-// get a product for a shop
-export const getProductsByShop = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
-
-    // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
-    if (!id || typeof id !== "string") {
-        throw new NotFoundError("Invalid shop id");
-    }
-
-    const products = await prisma.product.findMany({
-        where: { shopId: id, status: "APPROVED" },
-        include: { images: true },
-    });
-
-    res.status(200).json(products);
-});
 
 // get single product details
 export const getProductDetails = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+  let { id } = req.params;
 
-    // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
+  // Ensure id is a string
+  if (Array.isArray(id)) {
+    id = id[0];
+  }
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid product id");
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    // include: { images: true, shop: true, category: true },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      categoryId: true,
+      shopId: true,
+      varified: true,
+      status: true,
+      ratingAverage: true,
+      ratingCount: true,
+
+      reviews: {
+        select: {
+          user: {
+            select: {
+              username: true,
+            },
+          },
+          comment: true,
+          rating: true,
+        },
+        take: 2,
+      },
+      images: {
+        where: { status: "APPROVED" },
+        select: { imagePath: true },
+      },
+      shop: {
+        select: {
+          id: true,
+          shopName: true,
+          bio: true,
+          rating: true,
+          followersCount: true,
+          status:true,
+          seller: {
+            select: {
+              user: {
+                select: {
+                  username: true,
+                  telegramId: true,
+                },
+              },
+            },
+          },
+        },
+      },
+
     }
-    if (!id || typeof id !== "string") {
-        throw new NotFoundError("Invalid product id");
-    }
+  });
 
-    const product = await prisma.product.findUnique({
-        where: { id },
-        include: { images: true, shop: true, category: true },
-    });
+  if (!product || product.status !== "APPROVED") {
+    throw new NotFoundError("Product not found");
+  }
 
-    if (!product || product.status !== "APPROVED") {
-        throw new NotFoundError("Product not found");
-    }
+  logger.info({
+    event: 'product_details_fetched',
+    requestId: req.requestId,
+    productId: id,
 
-    res.status(200).json(product);
-    
+  })
+
+
+
+  res.status(200).json({ data: { product }, message: "Product details fetched successfully" });
+
 });
 
 // delete a product
 export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
-    // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
-    if (!id || typeof id !== "string") {
-        throw new NotFoundError("Invalid product id");
-    }
-    
-    const product = await prisma.product.findUnique({
-        where: { id },
-    });
+  let { id } = req.params;
+  // Ensure id is a string
+  if (Array.isArray(id)) {
+    id = id[0];
+  }
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid product id");
+  }
 
-    if (!product) {
-        throw new NotFoundError("Product not found");
-    }
-    
-    await prisma.product.delete({
-        where: { id },
-    });
-    res.status(200).json({ message: "Product deleted successfully" });
+  const product = await prisma.product.findUnique({
+    where: { id },
+  });
+
+  if (!product) {
+    throw new NotFoundError("Product not found");
+  }
+
+  await prisma.product.delete({
+    where: { id },
+  });
+  res.status(200).json({ message: "Product deleted successfully" });
 });
