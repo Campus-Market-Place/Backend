@@ -7,12 +7,10 @@ import { logger } from '../lib/logger.js';
 
 // get shop details for a product
 export const getShop = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+    const id  = req.shop.id;
 
     // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
+
     if (!id || typeof id !== "string") {
         throw new NotFoundError("Invalid shop id");
     }

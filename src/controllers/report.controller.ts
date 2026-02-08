@@ -5,7 +5,7 @@ import { NotFoundError, ConflictError } from "../errors/apperror.js";
 import { logger } from "../lib/logger.js";
 
 export const createReport = catchAsync(async (req: Request, res: Response) => {
-    const { shopId } = req.params;
+    const shopId = req.shop?.id;
 
     if (!shopId || Array.isArray(shopId)) {
         throw new ConflictError('Shop id is required and must be a string');
@@ -76,13 +76,10 @@ export const createReport = catchAsync(async (req: Request, res: Response) => {
 
 
 export const getReportsforshop = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+    const id  = req.shop?.id;
 
 
     // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
     if (!id || typeof id !== "string") {
         throw new NotFoundError("Invalid product id");
     }

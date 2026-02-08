@@ -164,13 +164,10 @@ setInterval(processPendingImages, 5000);
 
 // get a product for a category
 export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {
-  let { id } = req.params;
+  const id = req.category;
   let { page = "1", limit = "20" } = req.query;
 
   // Ensure id is a string
-  if (Array.isArray(id)) {
-    id = id[0];
-  }
   if (!id || typeof id !== "string") {
     throw new NotFoundError("Invalid category id");
   }

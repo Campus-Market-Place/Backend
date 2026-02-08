@@ -13,7 +13,7 @@ export const validateShop = () => {
         }
 
      const shop =await prisma.shop.findUnique({
-        where : {id : shopId}
+        where : {id : shopId, status: "APPROVED"}
     });
 
     if (!shop) {

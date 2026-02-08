@@ -6,7 +6,11 @@ import { logger } from "../lib/logger.js";
 
 
 export const createReview = catchAsync(async (req: Request, res: Response) => {
-    const { productId , shopId } = req.params;
+    // const { productId , shopId } = req.product , req.shop.id;
+
+    const productId = req.product;
+    const shopId = req.shop?.id;
+
 
     if (!productId || Array.isArray(productId)) {
         throw new ConflictError('Product id is required and must be a string');
@@ -94,13 +98,10 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
 
 // get reviews for a product with pagination
 export const getReviewsByProduct = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+    const id  = req.product;
     let { page = "1", limit = "10" } = req.query;
 
     // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
     if (!id || typeof id !== "string") {
         throw new NotFoundError("Invalid product id");
     }
@@ -137,13 +138,10 @@ export const getReviewsByProduct = catchAsync(async (req: Request, res: Response
 
 // get review for a shop 
 export const getReviewsByshop = catchAsync(async (req: Request, res: Response) => {
-    let { id } = req.params;
+    const id  = req.shop?.id;
     let { page = "1", limit = "10" } = req.query;
 
     // Ensure id is a string
-    if (Array.isArray(id)) {
-        id = id[0];
-    }
     if (!id || typeof id !== "string") {
         throw new NotFoundError("Invalid product id");
     }

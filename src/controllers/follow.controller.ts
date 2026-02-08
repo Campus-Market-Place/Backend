@@ -6,7 +6,7 @@ import { logger } from "../lib/logger.js";
 
 
 export const toggleFollowShop = catchAsync(async (req: Request, res: Response) => {
-    const { shopId } = req.params;
+    const  shopId  = req.shop?.id;
 
     if (!shopId || Array.isArray(shopId)) {
         throw new ConflictError('Shop id is required and must be a string');
@@ -77,7 +77,7 @@ export const toggleFollowShop = catchAsync(async (req: Request, res: Response) =
 
 // get followers of a shop
 export const getShopFollowers = catchAsync(async (req: Request, res: Response) => {
-    const { shopId } = req.params;
+    const shopId  = req.shop?.id;
 
     if (!shopId || Array.isArray(shopId)) {
         throw new ConflictError('Shop id is required and must be a string');
