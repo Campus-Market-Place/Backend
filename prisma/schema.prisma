@@ -39,7 +39,7 @@ model Fevorite {
   userid String @unique
   productid String
 
-user User @relation(fields: [userid], references: [id])
+  user User @relation(fields: [userid], references: [id])
   product Product @relation(fields: [productid], references: [id])
 
 

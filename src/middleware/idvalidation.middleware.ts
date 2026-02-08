@@ -50,3 +50,28 @@ export const validateCategory = () => {
     next();
   };
 }
+
+
+export const validateProduct = () => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+
+    const { productId } = req.body || req.params;
+
+
+    if (!productId || Array.isArray(productId)) {
+            throw new ConflictError('product id is required and must be a string');
+        }
+
+     const product =await prisma.product.findUnique({
+        where : {id : productId}
+    });
+
+    if (!product) {
+        throw new NotFoundError('Product not found'); 
+    }
+
+    req.product = product.id;
+
+    next();
+  };
+}

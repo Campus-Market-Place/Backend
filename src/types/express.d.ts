@@ -30,10 +30,12 @@ declare global {
         models: {
           shop: any; // replace when you have actual types
           category: any;
+          product: any;
         };
       };
       shop?: any;
       category?: any;
+      product?: any;
     }
   }
 }
