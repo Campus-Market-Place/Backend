@@ -18,7 +18,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
     });
 
     if (!user || user.deletedAt) throw new NotFoundError("User not found");
-    if (user.role === Roles.SELLER ) {
+    if (user.role === Roles.SELLER) {
         throw new ConflictError("User is already a seller");
     }
 
@@ -58,7 +58,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
     const verificationResult = await verifySeller(user.id, frontIdImage.path, backIdImage.path);
 
     const toBoolean = (value: any): boolean =>
-  value === true || value === "true" || value === "1";
+        value === true || value === "true" || value === "1";
 
 
 
@@ -72,7 +72,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                     campusLocation,
                     mainPhone,
                     secondaryPhone: secondaryPhone || null,
-                    agreedToRules : toBoolean(agreedToRules),
+                    agreedToRules: toBoolean(agreedToRules),
                     verificationStatus: SellerStatuses.APPROVED,
                     verificationScore: verificationResult.score,
                     verificationLevel: verificationResult.level,
@@ -91,7 +91,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                     other: Array.isArray(other) ? other : (other ? [other] : []),
                     mainPhone,
                     secondaryPhone: secondaryPhone || null,
-                    agreedToRules : toBoolean(agreedToRules),
+                    agreedToRules: toBoolean(agreedToRules),
                     verificationStatus: SellerStatuses.APPROVED,
                     verificationScore: verificationResult.score,
                     verificationLevel: verificationResult.level,
@@ -150,6 +150,7 @@ export const getSellerProfile = catchAsync(async (req: Request, res: Response) =
             },
             shop: {
                 select: {
+                    id: true,
                     shopName: true,
                     bio: true,
                     categoryId: true,
@@ -162,19 +163,8 @@ export const getSellerProfile = catchAsync(async (req: Request, res: Response) =
     if (!profile) throw new NotFoundError("Seller profile not found");
 
     res.status(200).json({
-        sellerStatus: profile.verificationStatus,
-        shopName: profile.shop?.shopName,
-        bio: profile.shop?.bio,
-        categoryId: profile.shop?.categoryId,
-        campusLocation: profile.campusLocation,
-        mainPhone: profile.mainPhone,
-        secondaryPhone: profile.secondaryPhone,
-        instagram: profile.instagram,
-        telegram: profile.telegram,
-        tiktok: profile.tiktok,
-        other: profile.other,
-        status: profile.shop?.status,
-        username: profile.user.username,
-        telegramId: profile.user.telegramId,
+        data: {
+            profile
+        }
     });
 });

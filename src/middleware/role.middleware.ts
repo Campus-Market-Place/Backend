@@ -38,7 +38,7 @@ export const requireActiveSeller = () => {
       throw new UnauthorizedError();
     }
 
-    if (req.user.role == 'SELLER') {
+    if (req.user.role !== 'SELLER') {
       throw new UnauthorizedError('Seller account required');
     }
 

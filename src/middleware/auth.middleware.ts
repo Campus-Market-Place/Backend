@@ -33,7 +33,6 @@ export async function authMiddleware(
     id: user.id,
     username: user.username,
     role: user.role,
-    sellerStatus: user.sellerStatus,
   };
 
   next();

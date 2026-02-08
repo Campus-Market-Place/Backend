@@ -79,11 +79,11 @@ async function checkExif(path: string) {
     let reasons: string[] = [];
 
     if (!exif.Make || !exif.Model) {
-        penalty += 25;
+        penalty += 10;
         reasons.push("Missing camera make or model (typical of social media)");
     }
     if (!exif.DateTimeOriginal) {
-        penalty += 15;
+        penalty += 5;
         reasons.push("Missing original capture time");
     }
 

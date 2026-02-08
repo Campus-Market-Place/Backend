@@ -23,6 +23,22 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) throw new NotFoundError("User context missing");
 
+  const shop = req.shop.id;
+  const category = req.category;
+
+  if (!shop || Array.isArray(shop)) {
+    throw new ConflictError('Shop id is required and must be a string');
+  }
+
+  if (!category || Array.isArray(category)) {
+    throw new ConflictError('Category id is required and must be a string');
+  }
+
+  console.log("Received product creation request:");
+  console.log("User ID:", userId);
+  console.log("Request Body:", req.body);
+  console.log("Uploaded Files:", req.files);
+
   const files = getUploadedFiles(req);
 
   if (files.length === 0) {
@@ -33,17 +49,26 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
   const { name, description, price } = req.body;
 
-  await prisma.$transaction(async (tx) => {
+  console.log("Extracted product details:");
+  console.log("Name:", name);
+  console.log("Description:", description);
+  console.log("Price:", price);
+  console.log("Image Paths:", imagepaths);
+
+  // change string price to int 
+  const priceInt = parseInt(price);
+
+  const result = await prisma.$transaction(async (tx) => {
 
     const product = await tx.product.create({
       data: {
         name,
         description,
-        price,
+        price: priceInt,
         isActive: false, // activate only after scoring
         status: "REVIEW", // default to REVIEW until images are scored
-        shopId: req.shop.id,
-        categoryId: req.category,
+        shopId: shop,
+        categoryId: category,
       },
     });
 
@@ -59,19 +84,23 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
     await tx.productImage.createMany({ data: imagesData });
 
+    return product;
+
+     });
+
     logger.info({
       event: 'product_created',
       requestId: req.requestId,
-      productId: product.id,
-      shopId: req.shop.id,
-      categoryId: req.category,
+      productId: result.id,
+      shopId: shop,
+      categoryId: category,
     });
 
     res.status(201).json({
       message: "Product created. Images will be verified shortly.",
-      productId: product.id,
+      productId: result.id,
     });
-  });
+ 
 
 });
 

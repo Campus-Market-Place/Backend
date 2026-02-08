@@ -6,18 +6,26 @@ import { prisma } from '../lib/prisma.js';
 export const validateShop = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
 
-    const { shopId } = req.params || req.body;
+
+
+    const shopId =
+      req.body?.shopId ??
+      req.params?.shopId;
+
+    console.log("Validating shop with ID:", shopId);
 
     if (!shopId || Array.isArray(shopId)) {
-            throw new ConflictError('shop id is required and must be a string');
-        }
+      throw new ConflictError('shop id is required and must be a string');
+    }
 
-     const shop =await prisma.shop.findUnique({
-        where : {id : shopId, status: "APPROVED"}
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId, status: "APPROVED" }
     });
 
+    console.log("Shop found in validation middleware:", shop);
+
     if (!shop) {
-        throw new NotFoundError('Shop not found'); 
+      throw new NotFoundError('Shop not found');
     }
 
     req.shop = shop;
@@ -30,44 +38,79 @@ export const validateShop = () => {
 export const validateCategory = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
 
-    const { categoryId } = req.body;
+    const categoryId =
+      req.body?.categoryId ??
+      req.params?.categoryId;
 
+    // 1️⃣ Validate presence & type
+    if (!categoryId || typeof categoryId !== 'string') {
+      throw new ConflictError('categoryId is required and must be a string');
+    }
 
-    if (!categoryId || Array.isArray(categoryId)) {
-            throw new ConflictError('category id is required and must be a string');
-        }
+    // 2️⃣ (Optional but recommended) UUID format check
+    if (!/^[0-9a-fA-F-]{36}$/.test(categoryId)) {
+      throw new ConflictError('Invalid categoryId format');
+    }
 
-     const category =await prisma.category.findUnique({
-        where : {id : categoryId}
+    // 3️⃣ Query Prisma correctly
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId }, // ✅ STRING ONLY
     });
 
     if (!category) {
-        throw new NotFoundError('Category not found'); 
+      throw new NotFoundError('Category not found');
     }
 
+    // 4️⃣ Attach clean value to request
     req.category = category.id;
 
     next();
   };
-}
+};
+
+// export const validateCategory = () => {
+//   return async (req: Request, _res: Response, next: NextFunction) => {
+
+//     const categoryId = req.body;
+
+
+//     if (!categoryId || Array.isArray(categoryId)) {
+//             throw new ConflictError('category id is required and must be a string');
+//         }
+
+//      const category =await prisma.category.findUnique({
+//         where : {id : categoryId}
+//     });
+
+//     if (!category) {
+//         throw new NotFoundError('Category not found'); 
+//     }
+
+//     req.category = category.id;
+
+//     next();
+//   };
+// }
 
 
 export const validateProduct = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
 
-    const { productId } = req.body || req.params;
+    const  productId  = req.body?.productId ?? req.params?.productId;
+
+    console.log("Validating product with ID:", productId);
 
 
     if (!productId || Array.isArray(productId)) {
-            throw new ConflictError('product id is required and must be a string');
-        }
+      throw new ConflictError('product id is required and must be a string');
+    }
 
-     const product =await prisma.product.findUnique({
-        where : {id : productId}
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
     });
 
     if (!product) {
-        throw new NotFoundError('Product not found'); 
+      throw new NotFoundError('Product not found');
     }
 
     req.product = product.id;
