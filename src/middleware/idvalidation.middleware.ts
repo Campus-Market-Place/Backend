@@ -20,7 +20,7 @@ export const validateShop = () => {
         throw new NotFoundError('Shop not found'); 
     }
 
-    req.shop = shop.id;
+    req.shop = shop;
 
     next();
   };

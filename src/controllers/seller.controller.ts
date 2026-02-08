@@ -18,7 +18,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
     });
 
     if (!user || user.deletedAt) throw new NotFoundError("User not found");
-    if (user.role === Roles.SELLER || user.sellerStatus === SellerStatuses.APPROVED) {
+    if (user.role === Roles.SELLER ) {
         throw new ConflictError("User is already a seller");
     }
 
@@ -102,7 +102,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
 
         await tx.user.update({
             where: { id: user.id },
-            data: { role: Roles.SELLER, sellerStatus: SellerStatuses.APPROVED },
+            data: { role: Roles.SELLER },
         });
 
         await tx.shop.create({
@@ -111,6 +111,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                 categoryId: categories,
                 sellerId: profile.id,
                 bio: discription,
+                status: "APPROVED",
             },
         });
 
@@ -152,6 +153,7 @@ export const getSellerProfile = catchAsync(async (req: Request, res: Response) =
                     shopName: true,
                     bio: true,
                     categoryId: true,
+                    status: true
                 },
             },
         },
@@ -171,6 +173,7 @@ export const getSellerProfile = catchAsync(async (req: Request, res: Response) =
         telegram: profile.telegram,
         tiktok: profile.tiktok,
         other: profile.other,
+        status: profile.shop?.status,
         username: profile.user.username,
         telegramId: profile.user.telegramId,
     });
