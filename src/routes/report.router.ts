@@ -10,4 +10,4 @@ export const reportRouter = Router();
 
 
 reportRouter.post('/:shopId', authMiddleware,validateShop(),validateBody(ReportSchema) ,createReport);
-reportRouter.get('/:shopId',requireActiveSeller ,validateShop(), getReportsforshop);
+reportRouter.get('/:shopId',authMiddleware,requireActiveSeller() ,validateShop(), getReportsforshop);

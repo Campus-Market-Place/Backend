@@ -6,6 +6,6 @@ export const saveProductRouter = Router();
 
 
 
-saveProductRouter.post('/:shopId/:productId', authMiddleware, validateShop(), validateProduct(), saveProduct);
+saveProductRouter.post('/', authMiddleware, validateShop(), validateProduct(), saveProduct);
 saveProductRouter.get('/', authMiddleware, getSavedProducts);
 

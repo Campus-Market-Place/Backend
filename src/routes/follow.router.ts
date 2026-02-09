@@ -8,4 +8,4 @@ export const followRouter = Router();
 
 
 followRouter.post('/:shopId', authMiddleware,validateShop(), toggleFollowShop);
-followRouter.get('/:shopId',requireActiveSeller ,validateShop(), getShopFollowers);
+followRouter.get('/:shopId',authMiddleware,requireActiveSeller(),validateShop(), getShopFollowers);

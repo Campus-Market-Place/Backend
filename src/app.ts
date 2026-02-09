@@ -13,6 +13,10 @@ import { openApiSpec } from './docs/openapi.js';
 import { errorHandler } from './errors/apperror.js';
 import { categoryRouter } from './routes/category.router.js';
 import { productRouter } from './routes/product.router.js';
+import { followRouter } from './routes/follow.router.js';
+import { reportRouter } from './routes/report.router.js';
+import { saveProductRouter } from './routes/save_product.router.js';
+import { reviewRouter } from './routes/review.router.js';
 
 
 
@@ -53,6 +57,11 @@ app.use('/api/', userRouter);
 app.use('/api/', sellerRouter);
 app.use('/api/', categoryRouter);
 app.use('/api/', productRouter);
+app.use('/api/follow/', followRouter);
+app.use('/api/report/', reportRouter);
+app.use('/api/save_product/', saveProductRouter);
+app.use('/api/review/', reviewRouter);
+
 // app.use('/admin', adminRouter);
 
 

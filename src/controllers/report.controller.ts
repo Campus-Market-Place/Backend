@@ -17,6 +17,18 @@ export const createReport = catchAsync(async (req: Request, res: Response) => {
 
     const { reason } = req.body;
 
+    // check if user has already reported this shop
+    const existingReport = await prisma.report.findFirst({
+        where: {
+            reporterId: userId,
+            shopId: shopId
+        }
+    });
+
+    if (existingReport) {
+        throw new ConflictError("You have already reported this shop");
+    }
+
     const report = await prisma.report.create({
         data: {
             shopId,

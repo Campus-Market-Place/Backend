@@ -113,6 +113,8 @@ export const validateProduct = () => {
       throw new NotFoundError('Product not found');
     }
 
+    console.log("Product found in validation middleware:", product);
+
     req.product = product.id;
 
     next();

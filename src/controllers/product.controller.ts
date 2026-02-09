@@ -351,3 +351,27 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   });
   res.status(200).json({ message: "Product deleted successfully" });
 });
+
+// update product activness
+export const updateProductActiveStatus = catchAsync(async (req: Request, res: Response) => {
+  const id  = req.product;
+  const { isActive } = req.body;
+
+  if (typeof isActive !== "boolean") {
+    throw new ConflictError("isActive must be a boolean");
+  }
+
+
+
+  // Ensure id is a string
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid product id");
+  }
+
+  await prisma.product.update({
+    where: { id },
+    data: { isActive },
+  });
+
+  res.status(200).json({ message: "Product active status updated successfully" });
+});

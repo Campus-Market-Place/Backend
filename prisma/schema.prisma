@@ -201,7 +201,7 @@ model Report {
   reason    String
   createdAt DateTime @default(now())
 
-  reporterId String
+  reporterId String  @unique
   shopId     String
 
   reporter User @relation("UserReports", fields: [reporterId], references: [id])
@@ -209,6 +209,7 @@ model Report {
 
   @@index([shopId])
   @@index([reporterId])
+  @@unique([reporterId, shopId])
   @@index([createdAt])
 }
 
