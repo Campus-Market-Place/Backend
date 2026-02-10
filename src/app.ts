@@ -38,6 +38,12 @@ if (config.isdev) {
   //   origin: ["https://teff-store.com"], // only your deployed frontend
   //   credentials: true,
   // }));Nn
+    app.use(cors({
+    origin: (origin, callback) => {
+      callback(null, true); // allow all origins
+    },
+    credentials: true,
+  }));
 }
 
 
