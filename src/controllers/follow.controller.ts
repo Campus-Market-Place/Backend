@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { catchAsync } from "../middleware/wrapper.js";
 import { NotFoundError, ConflictError } from "../errors/apperror.js";
@@ -17,7 +18,7 @@ export const toggleFollowShop = catchAsync(async (req: Request, res: Response) =
     if (!userId) throw new NotFoundError("User context missing");
 
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
         const existingFollow = await tx.follow.findUnique({
             where: {
@@ -51,15 +52,14 @@ export const toggleFollowShop = catchAsync(async (req: Request, res: Response) =
         });
 
 
-        await tx.follow.aggregate({
+        const result = await tx.follow.aggregate({
             where: { shopId },
             _count: { id: true },
-        }).then(async (result) => {
-            const followersCount = result._count.id;
-            await tx.shop.update({
-                where: { id: shopId },
-                data: { followersCount },
-            });
+        });
+        const followersCount = result._count.id;
+        await tx.shop.update({
+            where: { id: shopId },
+            data: { followersCount },
         });
 
         logger.info({

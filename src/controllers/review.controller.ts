@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { catchAsync } from "../middleware/wrapper.js";
 import { NotFoundError, ConflictError } from "../errors/apperror.js";
@@ -25,7 +26,7 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
     if (!userId) throw new NotFoundError("User context missing");
 
     const { rating, comment } = req.body;
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const review = await tx.review.create({
             data: {
                 productId: productId,

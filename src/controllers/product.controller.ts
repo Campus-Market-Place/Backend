@@ -6,6 +6,7 @@
 // delete a product
 
 import { Request, Response } from 'express';
+import type { Prisma, ProductImage } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { catchAsync } from '../middleware/wrapper.js';
 import { ConflictError, NotFoundError } from '../errors/apperror.js';
@@ -58,7 +59,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
   // change string price to int 
   const priceInt = parseInt(price);
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
     const product = await tx.product.create({
       data: {
@@ -126,13 +127,13 @@ async function processPendingImages() {
       });
 
       // Update Product status based on images
-      const productImages = await prisma.productImage.findMany({
+      const productImages: ProductImage[] = await prisma.productImage.findMany({
         where: { productId: img.productId },
       });
 
-      const allRejected = productImages.every((i) => i.status === "REJECTED");
-      const anyReview = productImages.some((i) => i.status === "REVIEW");
-      const allApproved = productImages.every((i) => i.status === "APPROVED");
+      const allRejected = productImages.every((image) => image.status === "REJECTED");
+      const anyReview = productImages.some((image) => image.status === "REVIEW");
+      const allApproved = productImages.every((image) => image.status === "APPROVED");
 
       type ProductStatus = "PENDING" | "REJECTED" | "REVIEW" | "APPROVED";
       let newStatus: ProductStatus = "PENDING";

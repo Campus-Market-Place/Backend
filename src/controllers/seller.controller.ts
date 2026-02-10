@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { catchAsync } from "../middleware/wrapper.js";
 import { NotFoundError, ConflictError } from "../errors/apperror.js";
@@ -64,7 +65,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
 
 
     // 2️⃣ Create or update sellerProfile in a transaction
-    const sellerProfile = await prisma.$transaction(async tx => {
+    const sellerProfile = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const profile = user.sellerProfile
             ? await tx.sellerProfile.update({
                 where: { id: user.sellerProfile.id },

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -28,7 +28,8 @@ export const app = express();
 
 if (config.isdev) {
   app.use(cors({
-    origin: (origin, cb) => cb(null, true), // Allow all origins
+    origin: (_origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) =>
+      callback(null, true), // Allow all origins
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }));
@@ -39,7 +40,7 @@ if (config.isdev) {
   //   credentials: true,
   // }));Nn
     app.use(cors({
-    origin: (origin, callback) => {
+    origin: (_origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       callback(null, true); // allow all origins
     },
     credentials: true,
@@ -55,7 +56,7 @@ app.use(requestLogger);
 
 app.use(express.json());
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req: Request, res: Response) => res.json({ ok: true }));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 app.use('/auth', authRouter);

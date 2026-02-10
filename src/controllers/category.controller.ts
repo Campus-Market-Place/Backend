@@ -36,11 +36,10 @@ export const createcategory = catchAsync(
 // get a catagory
 export const getcategory = catchAsync(
     async (req: Request, res: Response) => {
-        await prisma.category.findMany().then((categories) => {
-            res.status(200).json(
-               { data : { categories } }
-            );
-        });
+        const categories = await prisma.category.findMany();
+        res.status(200).json(
+           { data : { categories } }
+        );
 
         logger.info({
             event: 'categories_fetched',

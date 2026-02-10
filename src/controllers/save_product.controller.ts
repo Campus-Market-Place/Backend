@@ -81,5 +81,6 @@ export const getSavedProducts = catchAsync(async (req: Request, res: Response) =
         userId,
     });
 
-    res.status(200).json({ data: savedProducts.map((item) => item.product) });
+    const data = savedProducts.map((item: (typeof savedProducts)[number]) => item.product);
+    res.status(200).json({ data });
 })
