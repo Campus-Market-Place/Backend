@@ -13,12 +13,7 @@ export const config = {
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean),
-  baseUrl: process.env.baseurl, // exampleoce
-  fabricAppId: process.env.fabricAppID,
-  merchantAppId: process.env.merchantAppId,
-  merchantCode: process.env.merchantCode,
-  appSecret: process.env.appSecret,
-  PrivateKey: process.env.PrivateKey || '',
+
 
 };
 
