@@ -12,7 +12,8 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "target": "esnext",
-    "types": [],
+    "types": ["node", "express"],
+
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
