@@ -1,5 +1,6 @@
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { config } from '../config.js';
+
 
 export interface AuthTokenPayload extends JwtPayload {
   sub: string;
@@ -7,12 +8,23 @@ export interface AuthTokenPayload extends JwtPayload {
   username: string;
 }
 
-export function signJwt(payload: AuthTokenPayload) {
-  return jwt.sign(payload, config.jwtSecret as string, {
-    expiresIn: config.jwtExpiresIn as string | number,
-  });
+export function signJwt(payload: AuthTokenPayload): string {
+
+  const options: SignOptions = {};
+
+  if (config.jwtExpiresIn !== undefined) {
+    options.expiresIn = config.jwtExpiresIn;
+  }
+
+
+
+  // const options: SignOptions = {
+  //   expiresIn: config.jwtExpiresIn as SignOptions['expiresIn'],
+  // };
+
+  return jwt.sign(payload, config.jwtSecret, options);
 }
 
 export function verifyJwt(token: string) {
-  return jwt.verify(token, config.jwtSecret) as AuthTokenPayload;
+  return jwt.verify(token, config.jwtSecret as jwt.Secret) as AuthTokenPayload;
 }
