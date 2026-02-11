@@ -17,9 +17,10 @@ export const openApiSpec = {
     schemas: {
       TelegramLoginRequest: {
         type: 'object',
-        required: ['telegram_username'],
+        required: ['telegram_username' , 'telegram_id'],
         properties: {
           telegram_username: { type: 'string', example: 'campus_user' },
+          telegram_id: { type: 'string', example: '123456789' },
         },
       },
       AuthResponse: {
@@ -65,7 +66,7 @@ export const openApiSpec = {
           mainPhone: { type: 'string', example: '+233555555' },
           secondaryPhone: { type: 'string' },
           categoryId: { type: 'string', example: 'uuid' },
-          agreedToRules: { type: 'string', enum: ['1'], example: '1' },
+          agreedToRules: { type: 'boolean', enum: [true,false], example: true },
           instagram: { type: 'string' },
           telegram: { type: 'string' },
           tiktok: { type: 'string' },
@@ -212,6 +213,20 @@ export const openApiSpec = {
         security: [{ bearerAuth: [] }],
         responses: {
           200: { description: 'Seller profile returned' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+     '/api/shop/{shopId}': {
+      get: {
+        summary: 'Get shop profile',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Shop profile returned' },
           401: { description: 'Unauthorized' },
           404: { description: 'Not found' },
         },
