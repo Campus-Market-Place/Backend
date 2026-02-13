@@ -1,5 +1,6 @@
 import jsQR from "jsqr";
 import { createCanvas, loadImage } from "canvas";
+import { logger } from "../../lib/logger";
 
 export async function decodeQR(imagePath: string): Promise<string | null> {
   const img = await loadImage(imagePath);
@@ -10,5 +11,7 @@ export async function decodeQR(imagePath: string): Promise<string | null> {
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
   const qr = jsQR(imageData.data, img.width, img.height);
+
+  logger.info(`Decoded QR code from image ${imagePath}: ${qr ? qr.data : 'No QR code found'}`);
   return qr?.data || null;
 }
