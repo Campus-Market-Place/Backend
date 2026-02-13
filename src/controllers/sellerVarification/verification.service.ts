@@ -4,6 +4,7 @@ import { decodeQR } from "./qr.service.js";
 import { extractStudentId } from "./validation.util.js";
 import { calculateScore } from "./scoring.util.js";
 import { hashImage, deleteTempImages } from "../../lib/image.js";
+import { logger } from "../../lib/logger.js";
 
 export async function verifySeller(userId: string, frontImagePath: string, backImagePath: string) {
   const frontText = await extractText(frontImagePath);
@@ -25,6 +26,8 @@ export async function verifySeller(userId: string, frontImagePath: string, backI
     where: { studentId: studentId },
   });
 
+  logger.info(`Verification details for user ${userId}: studentId=${studentId}, hasUniversityText=${hasUniversityText}, qrMatches=${qrMatches}, duplicate=${!!duplicate}`);
+
   const score = calculateScore({
     hasUniversityText,
     studentIdValid: !!studentId,
@@ -36,7 +39,18 @@ export async function verifySeller(userId: string, frontImagePath: string, backI
   if (score >= 8) level = "VERIFIED";
   else if (score >= 6) level = "BASIC";
 
-  if (score < 6) throw new Error("id Verification failed");
+  if (score < 6) {
+    logger.warn({
+      event: "seller_verification_failed",
+      userId,
+      studentIdDetected: !!studentId,
+      hasUniversityText,
+      qrMatches,
+      duplicateId: !!duplicate,
+      score,
+    });
+    throw new Error("id Verification failed");
+  }
 
   const frontHash = await hashImage(frontImagePath);
   const backHash = await hashImage(backImagePath);
