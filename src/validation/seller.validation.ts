@@ -8,12 +8,12 @@ export const sellerRequestSchema = z.object({
     secondaryPhone: z.string().trim().optional(),
 
     // agrreedToRules must be true ,input can be boolean or string '1'/ 0'
- /*     agreedToRules: z.string().trim().refine(value => value === '1', {
-        message: 'agreedToRules must be true',
-    }), */
-    agreedToRules: z.boolean().refine(value => value === true, {
+     agreedToRules: z.string().trim().refine(value => value === '1', {
         message: 'agreedToRules must be true',
     }), 
+    // agreedToRules: z.boolean().refine(value => value === true, {
+    //     message: 'agreedToRules must be true',
+    // }), 
     // frontIdImage: z.string().trim().min(3, 'frontIdImage is required'),
     // backIdImage: z.string().trim().min(3, 'backIdImage is required'),
     instagram: z.string().trim().optional(),
