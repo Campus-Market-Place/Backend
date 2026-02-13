@@ -66,6 +66,17 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
 
     // 2️⃣ Create or update sellerProfile in a transaction
     const sellerProfile = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        if (!user.sellerProfile) {
+            const existingByStudentId = await tx.sellerProfile.findUnique({
+                where: { studentId: verificationResult.studentId },
+                select: { id: true, userId: true },
+            });
+
+            if (existingByStudentId) {
+                throw new ConflictError("Student ID is already registered to another seller");
+            }
+        }
+
         const profile = user.sellerProfile
             ? await tx.sellerProfile.update({
                 where: { id: user.sellerProfile.id },
