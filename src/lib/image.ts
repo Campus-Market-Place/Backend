@@ -2,16 +2,16 @@ import sharp from "sharp";
 import crypto from "crypto";
 import fs from "fs/promises";
 
-export async function preprocessImage(path: string) {
-  const buffer = await sharp(path)
+export async function preprocessImage(input: string | Buffer) {
+  const buffer = await sharp(input)
     .resize({ width: 1024, withoutEnlargement: true })
     .jpeg({ quality: 80 })
     .toBuffer();
   return buffer;
 }
 
-export async function hashImage(path: string) {
-  const buffer = await fs.readFile(path);
+export async function hashImage(input: string | Buffer) {
+  const buffer = Buffer.isBuffer(input) ? input : await fs.readFile(input);
   const hash = crypto.createHash("sha256").update(buffer).digest("hex");
   return hash;
 }
