@@ -39,6 +39,8 @@ export async function verifySeller(userId: string, frontImage: Buffer, backImage
     duplicateId: !!duplicate,
   });
 
+  console.log(`Calculated verification score for user ${userId}: ${score}`);
+
   let level: "BASIC" | "VERIFIED" | "FLAGGED" = "FLAGGED";
   if (score >= 8) level = "VERIFIED";
   else if (score >= 6) level = "BASIC";

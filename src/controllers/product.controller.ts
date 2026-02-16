@@ -107,6 +107,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
 });
 
+
 // pseudo worker using setInterval / queue
 // async function processPendingImages() {
 //   const pendingImages = await prisma.productImage.findMany({
@@ -235,6 +236,11 @@ export const getProductsByShop = catchAsync(async (req: Request, res: Response) 
 
     res.status(200).json({ data: { products }, message: "Products fetched successfully" });
 });
+
+
+
+
+
 
 // get a product for a category
 export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {
