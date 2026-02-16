@@ -24,3 +24,20 @@ export const sellerRequestSchema = z.object({
         z.string().trim().min(1, 'other must be a non-empty string if provided'),
     ]).optional(),
 });
+
+export const sellerUpdateSchema = z.object({
+    shopName: z.string().trim().min(2, 'shopName must be at least 2 characters').optional(),
+    discription: z.string().trim().min(5, 'discription must be at least 5 characters').optional(),
+    campusLocation: z.string().trim().optional(),
+    mainPhone: z.string().trim().min(5, 'mainPhone must be at least 5 characters').optional(),
+    secondaryPhone: z.string().trim().optional(),
+    categoryId: z.string().trim().optional(),
+    agreedToRules: z.union([z.string().trim(), z.boolean()]).optional(),
+    instagram: z.string().trim().optional(),
+    telegram: z.string().trim().optional(),
+    tiktok: z.string().trim().optional(),
+    other: z.union([
+        z.array(z.string().trim().min(1)).min(1, 'other must have at least one item if provided'),
+        z.string().trim().min(1, 'other must be a non-empty string if provided'),
+    ]).optional(),
+});
