@@ -22,6 +22,29 @@ export const saveProduct = catchAsync(async (req: Request, res: Response) => {
 
     if (!userId) throw new NotFoundError("User context missing");
 
+    // un save product 
+    const existing = await prisma.fevorite.findUnique({
+        where: {
+            userid: userId,
+            productid: productId,
+        },
+    });
+
+    if (existing) {
+        await prisma.fevorite.delete({
+            where: { id: existing.id },
+        });
+
+        logger.info({
+            event: 'product_unsaved',
+            requestId: req.requestId,
+            userId,
+            productId,
+        });
+
+        return res.status(200).json({ message: "Product unsaved successfully" });
+    }
+
     await prisma.fevorite.create({
         data: {
             userid: userId,
@@ -38,6 +61,8 @@ export const saveProduct = catchAsync(async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "Product saved successfully" });
 })
+
+
 
 
 // get saved products
