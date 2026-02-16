@@ -5,8 +5,9 @@ import { getSellerProfile, submitSellerRequest, updateSellerProfile } from '../c
 import { sellerRequestSchema, sellerUpdateSchema } from '../validation/seller.validation.js';
 import { uploadSellerImages } from '../lib/uplode.js';
 import { validateCategory } from '../middleware/idvalidation.middleware.js';
+import { requireActiveSeller } from '../middleware/role.middleware.js';
 export const sellerRouter = Router();
 
 sellerRouter.post('/seller-request', uploadSellerImages, authMiddleware, validateCategory(), validateBody(sellerRequestSchema), submitSellerRequest);
-sellerRouter.get('/seller-profile', authMiddleware, getSellerProfile );
-sellerRouter.patch('/seller-profile', authMiddleware, validateBody(sellerUpdateSchema), updateSellerProfile);
+sellerRouter.get('/seller-profile', authMiddleware,requireActiveSeller (), getSellerProfile );
+sellerRouter.patch('/seller-profile', authMiddleware,requireActiveSeller () ,validateBody(sellerUpdateSchema), updateSellerProfile);

@@ -27,6 +27,7 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
             isOpen: true,
             status: true,
             followersCount: true,
+            profileImageUrl: true,
             products: {
                 where: { status: "APPROVED", isActive: true },
                 select: {

@@ -18,7 +18,7 @@ export const productRouter = Router();
 
 productRouter.post('/products/:shopId',authMiddleware,requireActiveSeller (), uploadImages,validateCategory(),validateShop(),validateBody(CreateProductSchema), createProduct);
 productRouter.get('/products/:categoryId', validateCategory(), getProductsByCategory);
-productRouter.get('/products/shop/:shopId', validateShop(), getProductsByShop);
+productRouter.get('/products/shop/:shopId',authMiddleware,requireActiveSeller () ,validateShop(), getProductsByShop);
 productRouter.get('/products/details/:id', getProductDetails);
 productRouter.delete('/products/:id' ,authMiddleware, requireActiveSeller(), deleteProduct);
 productRouter.put('/products/:productId',authMiddleware, requireActiveSeller (), validateProduct() ,updateProductActiveStatus);
