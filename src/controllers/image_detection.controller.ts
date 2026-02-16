@@ -4,6 +4,10 @@ import sharp from "sharp";
 import imghash from "imghash";
 import { exiftool } from "exiftool-vendored";
 import { prisma } from '../lib/prisma.js';
+import axios from "axios";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -162,36 +166,60 @@ async function sellerTrustBonus(userId: string) {
 }
 
 export async function scoreImage(path: string, userId: string) {
+    const resolved = await resolveImagePath(path);
     let score = 100;
     let reasons: string[] = [];
+    try {
+        const quality = await checkQuality(resolved.path);
+        score -= quality.penalty;
+        reasons.push(...quality.reasons);
 
-    const quality = await checkQuality(path);
-    score -= quality.penalty;
-    reasons.push(...quality.reasons);
+        const exif = await checkExif(resolved.path);
+        score -= exif.penalty;
+        score += exif.bonus;
+        reasons.push(...exif.reasons);
 
-    const exif = await checkExif(path);
-    score -= exif.penalty;
-    score += exif.bonus;
-    reasons.push(...exif.reasons);
+        const reuse = await checkReuse(resolved.path);
+        score -= reuse.penalty;
+        reasons.push(...reuse.reasons);
 
-    const reuse = await checkReuse(path);
-    score -= reuse.penalty;
-    reasons.push(...reuse.reasons);
+        score += await sellerTrustBonus(userId);
 
-    score += await sellerTrustBonus(userId);
+        let status: "APPROVED" | "REVIEW" | "REJECTED" = "APPROVED";
 
-    let status: "APPROVED" | "REVIEW" | "REJECTED" = "APPROVED";
+        if (score < 50) status = "REJECTED";
+        else if (score < 75) status = "REVIEW";
 
-    if (score < 50) status = "REJECTED";
-    else if (score < 75) status = "REVIEW";
+        return {
+            score,
+            status,
+            reasons,
+            hash: reuse.hash,
+            make: exif.make,
+            model: exif.model,
+        };
+    } finally {
+        await resolved.cleanup();
+    }
+}
+
+async function resolveImagePath(input: string): Promise<{ path: string; cleanup: () => Promise<void> }> {
+    if (!/^https?:\/\//i.test(input)) {
+        return { path: input, cleanup: async () => {} };
+    }
+
+    const response = await axios.get<ArrayBuffer>(input, { responseType: "arraybuffer" });
+    const tmpPath = path.join(
+        os.tmpdir(),
+        `img-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+    );
+    await fs.writeFile(tmpPath, Buffer.from(response.data));
 
     return {
-        score,
-        status,
-        reasons,
-        hash: reuse.hash,
-        make: exif.make,
-        model: exif.model,
+        path: tmpPath,
+        cleanup: async () => {
+            await fs.unlink(tmpPath).catch(() => {});
+        },
     };
 }
 

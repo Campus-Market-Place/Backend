@@ -2,15 +2,15 @@ import { prisma } from "../../lib/prisma.js";
 import { extractText } from "./ocr.service.js";
 import { decodeQR } from "./qr.service.js";
 import { calculateScore } from "./scoring.util.js";
-import { hashImage, deleteTempImages } from "../../lib/image.js";
+import { hashImage } from "../../lib/image.js";
 import { logger } from "../../lib/logger.js";
 
-export async function verifySeller(userId: string, frontImagePath: string, backImagePath: string) {
-  const frontText = await extractText(frontImagePath);
-  const backText = await extractText(backImagePath);
+export async function verifySeller(userId: string, frontImage: Buffer, backImage: Buffer) {
+  const frontText = await extractText(frontImage);
+  const backText = await extractText(backImage);
 
-  const frontQR = await decodeQR(frontImagePath);
-  const backQR = await decodeQR(backImagePath);
+  const frontQR = await decodeQR(frontImage);
+  const backQR = await decodeQR(backImage);
 
   const qrPayloads = [frontQR, backQR].filter((qr): qr is string => !!qr);
   const studentIdMatch = qrPayloads
@@ -58,10 +58,8 @@ export async function verifySeller(userId: string, frontImagePath: string, backI
     throw new Error("id Verification failed");
   }
 
-  const frontHash = await hashImage(frontImagePath);
-  const backHash = await hashImage(backImagePath);
-
-  await deleteTempImages([frontImagePath, backImagePath]);
+  const frontHash = await hashImage(frontImage);
+  const backHash = await hashImage(backImage);
 
   return { studentId, score, level, frontHash, backHash };
 }

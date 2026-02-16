@@ -16,6 +16,7 @@ import { Roles, SellerStatuses } from '../constants/auth.js';
 import { scoreImage } from "./image_detection.controller.js";
 import { ImageStatus } from "../constants/image.js";
 import { getUploadedFiles } from '../lib/uplode_file.js';
+import { uploadMulterFiles } from "../lib/cloudinary_upload.js";
 
 
 
@@ -46,7 +47,8 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
     throw new NotFoundError("No images uploaded");
   }
 
-  const imagepaths = files.map((file) => file.path);
+  const uploads = await uploadMulterFiles(files, { folder: "products" });
+  const imagepaths = uploads.map((upload) => upload.secure_url);
 
   const { name, description, price } = req.body;
 
@@ -67,7 +69,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
         description,
         price: priceInt,
         isActive: false, // activate only after scoring
-        status: "REVIEW", // default to REVIEW until images are scored
+        status: "APPROVED", // default to REVIEW until images are scored
         shopId: shop,
         categoryId: category,
       },
@@ -78,7 +80,7 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
       productId: product.id,
       userId,
       imagePath: path,
-      status: "PENDING" as ImageStatus,
+      status: "APPROVED" as ImageStatus,
       phash: "", // or null, depending on your schema
       score: 0, // or null, depending on your schema
     }));
@@ -106,63 +108,63 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 });
 
 // pseudo worker using setInterval / queue
-async function processPendingImages() {
-  const pendingImages = await prisma.productImage.findMany({
-    where: { status: "PENDING" },
-  });
+// async function processPendingImages() {
+//   const pendingImages = await prisma.productImage.findMany({
+//     where: { status: "PENDING" },
+//   });
 
-  for (const img of pendingImages) {
-    try {
-      const result = await scoreImage(img.imagePath, img.userId);
+//   for (const img of pendingImages) {
+//     try {
+//       const result = await scoreImage(img.imagePath, img.userId);
 
-      await prisma.productImage.update({
-        where: { id: img.id },
-        data: {
-          score: result.score,
-          status: result.status,
-          reasons: result.reasons,
-          cameraMake: result.make ?? null,
-          cameraModel: result.model ?? null,
-        },
-      });
+//       await prisma.productImage.update({
+//         where: { id: img.id },
+//         data: {
+//           score: result.score,
+//           status: result.status,
+//           reasons: result.reasons,
+//           cameraMake: result.make ?? null,
+//           cameraModel: result.model ?? null,
+//         },
+//       });
 
-      // Update Product status based on images
-      const productImages: ProductImage[] = await prisma.productImage.findMany({
-        where: { productId: img.productId },
-      });
+//       // Update Product status based on images
+//       const productImages: ProductImage[] = await prisma.productImage.findMany({
+//         where: { productId: img.productId },
+//       });
 
-      const allRejected = productImages.every((image) => image.status === "REJECTED");
-      const anyReview = productImages.some((image) => image.status === "REVIEW");
-      const allApproved = productImages.every((image) => image.status === "APPROVED");
+//       const allRejected = productImages.every((image) => image.status === "REJECTED");
+//       const anyReview = productImages.some((image) => image.status === "REVIEW");
+//       const allApproved = productImages.every((image) => image.status === "APPROVED");
 
-      type ProductStatus = "PENDING" | "REJECTED" | "REVIEW" | "APPROVED";
-      let newStatus: ProductStatus = "PENDING";
-      if (allRejected) newStatus = "REJECTED";
-      else if (anyReview) newStatus = "REVIEW";
-      else if (allApproved) newStatus = "APPROVED";
+//       type ProductStatus = "PENDING" | "REJECTED" | "REVIEW" | "APPROVED";
+//       let newStatus: ProductStatus = "PENDING";
+//       if (allRejected) newStatus = "REJECTED";
+//       else if (anyReview) newStatus = "REVIEW";
+//       else if (allApproved) newStatus = "APPROVED";
 
-      await prisma.product.update({
-        where: { id: img.productId },
-        data: { status: newStatus },
-      });
+//       await prisma.product.update({
+//         where: { id: img.productId },
+//         data: { status: newStatus },
+//       });
 
-      logger.info({
-        event: 'image_processed',
-        requestId: '', // No request context in worker
-        imageId: img.id,
-        productId: img.productId,
-        status: result.status,
-        score: result.score,
-      });
+//       logger.info({
+//         event: 'image_processed',
+//         requestId: '', // No request context in worker
+//         imageId: img.id,
+//         productId: img.productId,
+//         status: result.status,
+//         score: result.score,
+//       });
 
-    } catch (err) {
-      console.error("Image scoring failed:", img.id, err);
-    }
-  }
-}
+//     } catch (err) {
+//       console.error("Image scoring failed:", img.id, err);
+//     }
+//   }
+// }
 
-// Example: run every 5 seconds
-setInterval(processPendingImages, 5000);
+// // Example: run every 5 seconds
+// setInterval(processPendingImages, 5000);
 
 
 // update a product
@@ -191,6 +193,48 @@ setInterval(processPendingImages, 5000);
 //     })
 
 // });
+
+// get a product for a seller 
+export const getProductsByShop = catchAsync(async (req: Request, res: Response) => {
+    const id = req.shop.id;
+    let { page = "1", limit = "20" } = req.query;
+
+    // Ensure id is a string
+    if (!id || typeof id !== "string") {
+        throw new NotFoundError("Invalid shop id");
+    }
+
+    const products = await prisma.product.findMany({
+        where: { shopId: id, status: "APPROVED" },
+        select: {
+            id: true,
+            name: true,
+            price: true,
+            categoryId: true,
+            shopId: true,
+            varified: true,
+            status: true,
+            ratingAverage: true,
+            images: {
+                where: { status: "APPROVED" },
+                select: { imagePath: true },
+                take: 1, // Get only one approved image for preview
+            },
+        },
+        skip: (parseInt(page as string) - 1) * parseInt(limit as string),
+        take: parseInt(limit as string),
+    });
+
+    logger.info({
+        event: 'products_by_shop_fetched',
+        requestId: req.requestId,
+        shopId: id,
+        page,
+        limit,
+    });
+
+    res.status(200).json({ data: { products }, message: "Products fetched successfully" });
+});
 
 // get a product for a category
 export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {

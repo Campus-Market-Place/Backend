@@ -42,6 +42,8 @@ model Fevorite {
   user User @relation(fields: [userid], references: [id])
   product Product @relation(fields: [productid], references: [id])
 
+  @@index([userid , productid])
+
 
 }
 
@@ -58,6 +60,8 @@ model SellerProfile {
   verificationLevel  VerificationLevel?
   frontImageHash     String
   backImageHash      String
+  frontIdImagePublicId String?
+  backIdImagePublicId  String?
   verificationReason String?
   mainPhone          String
   secondaryPhone     String?
@@ -100,6 +104,9 @@ model Shop {
   shopName   String
   categoryId String
   bio        String
+
+  profileImageUrl      String?
+  profileImagePublicId String?
 
   isOpen         Boolean   @default(true)
   rating         Float     @default(0) // average across all products

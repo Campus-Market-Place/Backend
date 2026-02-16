@@ -67,7 +67,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
     let frontUpload: { public_id: string } | null = null;
     let backUpload: { public_id: string } | null = null;
     let shopUpload: { public_id: string; secure_url: string } | null = null;
-    let verificationResult;
+    let verificationResult: { studentId: any; score: any; level: any; frontHash: any; backHash: any; };
 
     try {
         if (!frontIdImage.buffer || !backIdImage.buffer || !shopImageFile.buffer) {
@@ -108,8 +108,8 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                         verificationLevel: verificationResult.level,
                         frontImageHash: verificationResult.frontHash,
                         backImageHash: verificationResult.backHash,
-                        frontIdImagePublicId: frontUpload.public_id,
-                        backIdImagePublicId: backUpload.public_id,
+                        frontIdImagePublicId: frontUpload?.public_id ?? "",
+                        backIdImagePublicId: backUpload?.public_id ?? "",
                     },
                 })
                 : await tx.sellerProfile.create({
@@ -129,8 +129,8 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                         verificationLevel: verificationResult.level,
                         frontImageHash: verificationResult.frontHash,
                         backImageHash: verificationResult.backHash,
-                        frontIdImagePublicId: frontUpload.public_id,
-                        backIdImagePublicId: backUpload.public_id,
+                        frontIdImagePublicId: frontUpload?.public_id ?? "",
+                        backIdImagePublicId: backUpload?.public_id  ?? "", 
                     },
                 });
 
@@ -145,8 +145,8 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                     categoryId: categories,
                     sellerId: profile.id,
                     bio: discription,
-                    profileImageUrl: shopUpload.secure_url,
-                    profileImagePublicId: shopUpload.public_id,
+                    profileImageUrl: shopUpload?.secure_url ?? "",
+                    profileImagePublicId: shopUpload?.public_id ?? "",
                     status: "APPROVED",
                 },
             });
