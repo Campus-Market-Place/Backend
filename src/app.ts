@@ -18,6 +18,7 @@ import { reportRouter } from './routes/report.router.js';
 import { saveProductRouter } from './routes/save_product.router.js';
 import { reviewRouter } from './routes/review.router.js';
 import { shopRouter } from './routes/shop.router.js';
+import { botRouter } from './lib/Telegram_webhook.js';
 
 
 
@@ -70,6 +71,7 @@ app.use('/api/report/', reportRouter);
 app.use('/api/save_product/', saveProductRouter);
 app.use('/api/review/', reviewRouter);
 app.use('/api/shop/', shopRouter);
+app.use('/', botRouter);
 
 // app.use('/admin', adminRouter);
 
