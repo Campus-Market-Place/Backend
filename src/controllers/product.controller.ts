@@ -398,8 +398,11 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     throw new NotFoundError("Product not found");
   }
 
-  await prisma.product.delete({
-    where: { id },
+  await prisma.$transaction(async (tx) => {
+    await tx.productImage.deleteMany({ where: { productId: id } });
+    await tx.review.deleteMany({ where: { productId: id } });
+    await tx.fevorite.deleteMany({ where: { productid: id } });
+    await tx.product.delete({ where: { id } });
   });
   res.status(200).json({ message: "Product deleted successfully" });
 });

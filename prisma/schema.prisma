@@ -36,7 +36,7 @@ model User {
 
 model Fevorite {
   id String @id @default(uuid())
-  userid String @unique
+  userid String 
   productid String
 
   user User @relation(fields: [userid], references: [id])
