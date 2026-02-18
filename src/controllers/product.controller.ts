@@ -214,6 +214,7 @@ export const getProductsByShop = catchAsync(async (req: Request, res: Response) 
             categoryId: true,
             shopId: true,
             varified: true,
+            isActive: true,
             status: true,
             ratingAverage: true,
             images: {
