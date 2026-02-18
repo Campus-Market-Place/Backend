@@ -25,14 +25,21 @@ export const saveProduct = catchAsync(async (req: Request, res: Response) => {
     // un save product 
     const existing = await prisma.fevorite.findUnique({
         where: {
-            userid: userId,
-            productid: productId,
+            userid_productid: {
+                userid: userId,
+                productid: productId,
+            },
         },
     });
 
     if (existing) {
         await prisma.fevorite.delete({
-            where: { id: existing.id },
+            where: {
+                userid_productid: {
+                    userid: userId,
+                    productid: productId,
+                },
+            },
         });
 
         logger.info({

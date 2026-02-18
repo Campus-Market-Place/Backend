@@ -34,15 +34,18 @@ model User {
   @@index([telegramId])
 }
 
+
+
 model Fevorite {
   id String @id @default(uuid())
-  userid String 
+  userid String
   productid String
 
   user User @relation(fields: [userid], references: [id])
   product Product @relation(fields: [productid], references: [id])
 
-  @@index([userid , productid])
+  @@unique([userid, productid])
+  @@index([userid, productid])
 
 
 }
