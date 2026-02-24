@@ -446,6 +446,21 @@ export const openApiSpec = {
           200: { description: 'Saved products returned' },
         },
       },
+      delete: {
+        summary: 'Unsave product',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SaveProductRequest' },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Product unsaved' },
+        },
+      },
     },
     '/api/review/{shopId}/{productId}': {
       post: {

@@ -22,36 +22,7 @@ export const saveProduct = catchAsync(async (req: Request, res: Response) => {
 
     if (!userId) throw new NotFoundError("User context missing");
 
-    // un save product 
-    const existing = await prisma.fevorite.findUnique({
-        where: {
-            userid_productid: {
-                userid: userId,
-                productid: productId,
-            },
-        },
-    });
-
-    if (existing) {
-        await prisma.fevorite.delete({
-            where: {
-                userid_productid: {
-                    userid: userId,
-                    productid: productId,
-                },
-            },
-        });
-
-        logger.info({
-            event: 'product_unsaved',
-            requestId: req.requestId,
-            userId,
-            productId,
-        });
-
-        return res.status(200).json({ message: "Product unsaved successfully" });
-    }
-
+   
     await prisma.fevorite.create({
         data: {
             userid: userId,
@@ -67,6 +38,35 @@ export const saveProduct = catchAsync(async (req: Request, res: Response) => {
     });
 
     res.status(200).json({ message: "Product saved successfully" });
+})
+
+
+export const unsaveProduct = catchAsync(async (req: Request, res: Response) => {
+    const productId = req.product;
+
+    if (!productId || Array.isArray(productId)) {
+        throw new ConflictError('Product id is required and must be a string');
+    }
+
+    const userId = req.user?.id;
+
+    if (!userId) throw new NotFoundError("User context missing");
+
+    await prisma.fevorite.deleteMany({
+        where: {
+            userid: userId,
+            productid: productId,
+        },
+    });
+
+    logger.info({
+        event: 'product_unsaved',
+        requestId: req.requestId,
+        userId,
+        productId,
+    });
+
+    res.status(200).json({ message: "Product unsaved successfully" });
 })
 
 

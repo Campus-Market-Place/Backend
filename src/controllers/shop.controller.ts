@@ -7,7 +7,7 @@ import { logger } from '../lib/logger.js';
 
 // get shop details for a product
 export const getShop = catchAsync(async (req: Request, res: Response) => {
-    const id  = req.shop.id;
+    const id = req.shop.id;
 
     // Ensure id is a string
 
@@ -18,7 +18,7 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
 
 
     const shop = await prisma.shop.findUnique({
-        where: { id , status: 'APPROVED' },
+        where: { id, status: 'APPROVED' },
         select: {
             id: true,
             shopName: true,
@@ -70,10 +70,23 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
         throw new NotFoundError("Shop not found");
     }
 
+
+    await prisma.follow.findUnique({
+        where: {
+            userId_shopId: {
+                userId: req.user?.id || "",
+                shopId: shop.id || "",
+            },
+        },
+    }).then((follow) => {
+        // Add isFollowed property to shop object
+        (shop as any).isFollowed = !!follow;
+    });
+
+
     logger.info({
         event: 'shop_details_fetched',
-        requestId: req.requestId,   
-
+        requestId: req.requestId,
         shopId: id,
     });
 

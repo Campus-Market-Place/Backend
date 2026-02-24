@@ -96,7 +96,7 @@ export const validateCategory = () => {
 export const validateProduct = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
 
-    const  productId  = req.body?.productId ?? req.params?.productId;
+    const  productId  = req.body?.productId ?? req.params?.productId ?? req.query?.productId;
 
     console.log("Validating product with ID:", productId);
 

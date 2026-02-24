@@ -89,21 +89,21 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
     return product;
 
-     });
+  });
 
-    logger.info({
-      event: 'product_created',
-      requestId: req.requestId,
-      productId: result.id,
-      shopId: shop,
-      categoryId: category,
-    });
+  logger.info({
+    event: 'product_created',
+    requestId: req.requestId,
+    productId: result.id,
+    shopId: shop,
+    categoryId: category,
+  });
 
-    res.status(201).json({
-      message: "Product created. Images will be verified shortly.",
-      productId: result.id,
-    });
- 
+  res.status(201).json({
+    message: "Product created. Images will be verified shortly.",
+    productId: result.id,
+  });
+
 
 });
 
@@ -197,45 +197,46 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
 // get a product for a seller 
 export const getProductsByShop = catchAsync(async (req: Request, res: Response) => {
-    const id = req.shop.id;
-    let { page = "1", limit = "20" } = req.query;
+  const id = req.shop.id;
+  let { page = "1", limit = "20" } = req.query;
 
-    // Ensure id is a string
-    if (!id || typeof id !== "string") {
-        throw new NotFoundError("Invalid shop id");
-    }
+  // Ensure id is a string
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid shop id");
+  }
 
-    const products = await prisma.product.findMany({
-        where: { shopId: id, status: "APPROVED" },
-        select: {
-            id: true,
-            name: true,
-            price: true,
-            categoryId: true,
-            shopId: true,
-            varified: true,
-            isActive: true,
-            status: true,
-            ratingAverage: true,
-            images: {
-                where: { status: "APPROVED" },
-                select: { imagePath: true },
-                take: 1, // Get only one approved image for preview
-            },
-        },
-        skip: (parseInt(page as string) - 1) * parseInt(limit as string),
-        take: parseInt(limit as string),
-    });
+  const products = await prisma.product.findMany({
+    where: { shopId: id, status: "APPROVED" },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      categoryId: true,
+      shopId: true,
+      varified: true,
+      isActive: true,
+      status: true,
+      ratingAverage: true,
+      createdAt: true,
+      images: {
+        where: { status: "APPROVED" },
+        select: { imagePath: true },
+        take: 1, // Get only one approved image for preview
+      },
+    },
+    skip: (parseInt(page as string) - 1) * parseInt(limit as string),
+    take: parseInt(limit as string),
+  });
 
-    logger.info({
-        event: 'products_by_shop_fetched',
-        requestId: req.requestId,
-        shopId: id,
-        page,
-        limit,
-    });
+  logger.info({
+    event: 'products_by_shop_fetched',
+    requestId: req.requestId,
+    shopId: id,
+    page,
+    limit,
+  });
 
-    res.status(200).json({ data: { products }, message: "Products fetched successfully" });
+  res.status(200).json({ data: { products }, message: "Products fetched successfully" });
 });
 
 
@@ -269,6 +270,7 @@ export const getProductsByCategory = catchAsync(async (req: Request, res: Respon
       varified: true,
       status: true,
       ratingAverage: true,
+      ratingCount: true,
       images: {
         where: { status: "APPROVED" },
         select: { imagePath: true },
@@ -345,7 +347,7 @@ export const getProductDetails = catchAsync(async (req: Request, res: Response) 
           bio: true,
           rating: true,
           followersCount: true,
-          status:true,
+          status: true,
           seller: {
             select: {
               user: {
@@ -361,6 +363,21 @@ export const getProductDetails = catchAsync(async (req: Request, res: Response) 
 
     }
   });
+
+
+  if (product) {
+    await prisma.follow.findUnique({
+      where: {
+        userId_shopId: {
+          userId: req.user?.id || "",
+          shopId: product.shopId || "",
+        },
+      },
+    }).then((follow) => {
+      // Add isFollowed property to shop object
+      (product.shop as any).isFollowed = !!follow;
+    });
+  }
 
   if (!product || product.status !== "APPROVED") {
     throw new NotFoundError("Product not found");
@@ -409,7 +426,7 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
 
 // update product activness
 export const updateProductActiveStatus = catchAsync(async (req: Request, res: Response) => {
-  const id  = req.product;
+  const id = req.product;
   const { isActive } = req.body;
 
   if (typeof isActive !== "boolean") {
