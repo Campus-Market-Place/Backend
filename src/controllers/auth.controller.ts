@@ -82,6 +82,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
 export const me = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new UnauthorizedError('User context missing');

@@ -1,6 +1,7 @@
 export const Roles = {
   USER: 'USER',
   SELLER: 'SELLER',
+  ADMIN: 'ADMIN',
 } as const;
 
 export const SellerStatuses = {

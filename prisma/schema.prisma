@@ -14,11 +14,11 @@ datasource db {
 
 // --------------------- User ---------------------
 model User {
-  id         String @id @default(uuid())
-  telegramId String @unique
+  id             String @id @default(uuid())
+  telegramId     String @unique
   telegramchatId String @unique
-  username   String
-  role       Role   @default(USER)
+  username       String
+  role           Role   @default(USER)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -30,25 +30,22 @@ model User {
   follows       Follow[]
   reviews       Review[]
   productImages ProductImage[] // Added relation to ProductImage
-  Fevorite    Fevorite[]
+  Fevorite      Fevorite[]
+  appeals       Appeal[]      
 
   @@index([telegramId])
 }
 
-
-
 model Fevorite {
-  id String @id @default(uuid())
-  userid String
+  id        String @id @default(uuid())
+  userid    String
   productid String
 
-  user User @relation(fields: [userid], references: [id])
+  user    User    @relation(fields: [userid], references: [id])
   product Product @relation(fields: [productid], references: [id])
 
   @@unique([userid, productid])
   @@index([userid, productid])
-
-
 }
 
 // --------------------- Seller Profile ---------------------
@@ -56,19 +53,19 @@ model SellerProfile {
   id     String @id @default(uuid())
   userId String @unique
 
-  studentId          String             @unique
+  studentId          String         @unique
   campusLocation     String
-  verificationStatus SellerStatuses     @default(PENDING)
+  verificationStatus SellerStatuses @default(PENDING)
 
-  verificationScore  Int?
-  verificationLevel  VerificationLevel?
-  frontImageHash     String
-  backImageHash      String
+  verificationScore    Int?
+  verificationLevel    VerificationLevel?
+  frontImageHash       String
+  backImageHash        String
   frontIdImagePublicId String?
   backIdImagePublicId  String?
-  verificationReason String?
-  mainPhone          String
-  secondaryPhone     String?
+  verificationReason   String?
+  mainPhone            String
+  secondaryPhone       String?
 
   telegram      String?
   instagram     String?
@@ -82,7 +79,7 @@ model SellerProfile {
 
   shop          Shop?
   notifications Notification[]
-
+  
 
   monthlyStats MonthlyStats?
 
@@ -112,27 +109,47 @@ model Shop {
   profileImageUrl      String?
   profileImagePublicId String?
 
-  isOpen         Boolean   @default(true)
-  rating         Float     @default(0) // average across all products
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
-  followersCount Int       @default(0)
-  reportsCount   Int       @default(0)
-  status             SellerStatus       @default(NONE)
-  suspensionReason   String?
+  isOpen           Boolean      @default(true)
+  rating           Float        @default(0) // average across all products
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+  followersCount   Int          @default(0)
+  reportsCount     Int          @default(0)
+  status           SellerStatus @default(NONE)
+  suspensionReason String?
 
-  seller    SellerProfile @relation(fields: [sellerId], references: [id])
-  reports   Report[]      @relation("SellerReports")
-  products  Product[]
-  followers Follow[]
-  review    Review[]
-  interactions  Interaction[]
+  seller       SellerProfile @relation(fields: [sellerId], references: [id])
+  reports      Report[]      @relation("SellerReports")
+  products     Product[]
+  followers    Follow[]
+  review       Review[]
+  interactions Interaction[]
+  appeals     Appeal[]
 
   createdAt DateTime @default(now())
 
   @@index([sellerId])
   @@index([isOpen])
 }
+
+model Appeal {
+  id          String   @id @default(uuid())
+  shopId      String
+  sellerId    String
+  message     String
+  status      AppealStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  seller      User     @relation(fields: [sellerId], references: [id])
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 
 // --------------------- Category ---------------------
 model Category {
@@ -166,9 +183,9 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id])
   shop     Shop     @relation(fields: [shopId], references: [id])
 
-  images  ProductImage[]
-  reviews Review[]
-  Fevorite    Fevorite[]
+  images   ProductImage[]
+  reviews  Review[]
+  Fevorite Fevorite[]
 
   createdAt DateTime @default(now())
 
@@ -208,20 +225,19 @@ enum ImageStatus {
 }
 
 model ShopAnalyticsDaily {
-  id            String   @id @default(uuid())
-  shopId        String
-  date          DateTime
-  views         Int      @default(0)
-  uniqueFollower Int     @default(0)
-  uniqueViews   Int      @default(0)
-  followers     Int      @default(0)
-  contacts      Int      @default(0)
-  socialChecks  Int      @default(0)
-  reports       Int      @default(0)
+  id             String   @id @default(uuid())
+  shopId         String
+  date           DateTime
+  views          Int      @default(0)
+  uniqueFollower Int      @default(0)
+  uniqueViews    Int      @default(0)
+  followers      Int      @default(0)
+  contacts       Int      @default(0)
+  socialChecks   Int      @default(0)
+  reports        Int      @default(0)
 
   @@unique([shopId, date])
 }
-
 
 // --------------------- Report ---------------------
 model Report {
@@ -229,19 +245,17 @@ model Report {
   reason    String
   createdAt DateTime @default(now())
 
-  reporterId String  @unique
+  reporterId String @unique
   shopId     String
 
   reporter User @relation("UserReports", fields: [reporterId], references: [id])
   shop     Shop @relation("SellerReports", fields: [shopId], references: [id])
 
+  @@unique([reporterId, shopId])
   @@index([shopId])
   @@index([reporterId])
-  @@unique([reporterId, shopId])
   @@index([createdAt])
 }
-
-
 
 // --------------------- Interaction ---------------------
 model Interaction {
@@ -249,15 +263,15 @@ model Interaction {
   action    InteractionType
   createdAt DateTime        @default(now())
 
-  userId          String?
-  shopId         String
+  userId String?
+  shopId String
 
-  count          Int      @default(1)
+  count Int @default(1)
 
-  user          User?         @relation(fields: [userId], references: [id])
-  shop     Shop @relation(fields: [shopId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+  shop Shop  @relation(fields: [shopId], references: [id])
 
-  @@unique([shopId , userId , action])
+  @@unique([shopId, userId, action])
   @@index([shopId])
   @@index([userId])
   @@index([action])
@@ -324,11 +338,11 @@ model Review {
   rating    Int // 1-5
   comment   String?
   createdAt DateTime @default(now())
-  shopId     String
+  shopId    String
 
   user    User    @relation(fields: [userId], references: [id])
   product Product @relation(fields: [productId], references: [id])
-  shop     Shop    @relation(fields: [shopId], references: [id])
+  shop    Shop    @relation(fields: [shopId], references: [id])
 
   @@unique([userId, productId]) // one review per product per user
   @@index([productId])
@@ -341,12 +355,14 @@ model Review {
 enum Role {
   USER
   SELLER
+  ADMIN
   BOTH
 }
 
 enum SellerStatus {
   NONE
   APPROVED
+  WARNING
   SUSPENDED
 }
 
