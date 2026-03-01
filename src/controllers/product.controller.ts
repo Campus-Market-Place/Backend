@@ -289,7 +289,7 @@ export const getProductsByCategory = catchAsync(async (req: Request, res: Respon
   const products = await prisma.product.findMany({
     where: {
       categoryId: id, status: "APPROVED", isActive: true, shop: {
-        status: 'APPROVED'
+        status: { in: ["APPROVED", "WARNING"] }
       }
     },
     select: {

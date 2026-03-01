@@ -19,7 +19,7 @@ export const validateShop = () => {
     }
 
     const shop = await prisma.shop.findUnique({
-      where: { id: shopId, status: "APPROVED" }
+      where: { id: shopId, status: { in: ["APPROVED", "WARNING"] } }
     });
 
     console.log("Shop found in validation middleware:", shop);

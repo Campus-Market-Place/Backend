@@ -18,7 +18,7 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
 
 
     const shop = await prisma.shop.findUnique({
-        where: { id, status: 'APPROVED' },
+        where: { id, status: { in: ["APPROVED", "WARNING"] } },
         select: {
             id: true,
             shopName: true,
