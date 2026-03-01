@@ -16,6 +16,7 @@ datasource db {
 model User {
   id         String @id @default(uuid())
   telegramId String @unique
+  telegramchatId String @unique
   username   String
   role       Role   @default(USER)
 
@@ -81,7 +82,7 @@ model SellerProfile {
 
   shop          Shop?
   notifications Notification[]
-  interactions  Interaction[]
+
 
   monthlyStats MonthlyStats?
 
@@ -125,6 +126,7 @@ model Shop {
   products  Product[]
   followers Follow[]
   review    Review[]
+  interactions  Interaction[]
 
   createdAt DateTime @default(now())
 
@@ -205,6 +207,22 @@ enum ImageStatus {
   REJECTED
 }
 
+model ShopAnalyticsDaily {
+  id            String   @id @default(uuid())
+  shopId        String
+  date          DateTime
+  views         Int      @default(0)
+  uniqueFollower Int     @default(0)
+  uniqueViews   Int      @default(0)
+  followers     Int      @default(0)
+  contacts      Int      @default(0)
+  socialChecks  Int      @default(0)
+  reports       Int      @default(0)
+
+  @@unique([shopId, date])
+}
+
+
 // --------------------- Report ---------------------
 model Report {
   id        String   @id @default(uuid())
@@ -223,6 +241,8 @@ model Report {
   @@index([createdAt])
 }
 
+
+
 // --------------------- Interaction ---------------------
 model Interaction {
   id        String          @id @default(uuid())
@@ -230,12 +250,15 @@ model Interaction {
   createdAt DateTime        @default(now())
 
   userId          String?
-  sellerProfileId String
+  shopId         String
+
+  count          Int      @default(1)
 
   user          User?         @relation(fields: [userId], references: [id])
-  sellerProfile SellerProfile @relation(fields: [sellerProfileId], references: [id])
+  shop     Shop @relation(fields: [shopId], references: [id])
 
-  @@index([sellerProfileId])
+  @@unique([shopId , userId , action])
+  @@index([shopId])
   @@index([userId])
   @@index([action])
   @@index([createdAt])
@@ -280,6 +303,7 @@ model Follow {
   shopId    String
   // sellerProfileId String
   createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
 
   user User @relation(fields: [userId], references: [id])
   shop Shop @relation(fields: [shopId], references: [id])
@@ -329,8 +353,7 @@ enum SellerStatus {
 enum InteractionType {
   CONTACT_CLICK
   SOCIAL_MEDIA_CHECK
-  REPORT
-  FOLLOW
+  VIEW
 }
 
 enum NotificationType {
