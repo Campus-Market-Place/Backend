@@ -279,18 +279,33 @@ export const getProductsByShop = catchAsync(async (req: Request, res: Response) 
 export const getProductsByCategory = catchAsync(async (req: Request, res: Response) => {
   const id = req.category;
   let { page = "1", limit = "20" } = req.query;
+  const pageNumber = Number.parseInt(page as string, 10);
+  const limitNumber = Number.parseInt(limit as string, 10);
 
   // Ensure id is a string
   if (!id || typeof id !== "string") {
     throw new NotFoundError("Invalid category id");
   }
 
+  if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+    throw new ConflictError("page must be a positive integer");
+  }
+
+  if (!Number.isInteger(limitNumber) || limitNumber < 1) {
+    throw new ConflictError("limit must be a positive integer");
+  }
+
 
   const products = await prisma.product.findMany({
     where: {
-      categoryId: id, status: "APPROVED", isActive: true, shop: {
-        status: { in: ["APPROVED", "WARNING"] }
-      }
+      categoryId: id,
+      status: "APPROVED",
+      isActive: true,
+      shop: {
+        is: {
+          status: { in: ["APPROVED", "WARNING"] },
+        },
+      },
     },
     select: {
       id: true,
@@ -308,8 +323,8 @@ export const getProductsByCategory = catchAsync(async (req: Request, res: Respon
         take: 1, // Get only one approved image for preview
       },
     },
-    skip: (parseInt(page as string) - 1) * parseInt(limit as string),
-    take: parseInt(limit as string),
+    skip: (pageNumber - 1) * limitNumber,
+    take: limitNumber,
   });
 
 
