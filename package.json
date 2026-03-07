@@ -2,13 +2,13 @@
   "name": "ts_practice_node",
   "version": "1.0.0",
   "scripts": {
-    "build": "prisma generate && tsc",
+    "build": "node ./node_modules/prisma/build/index.js generate && tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:prod": "prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "prisma:generate": "node ./node_modules/prisma/build/index.js generate",
+    "prisma:migrate:dev": "node ./node_modules/prisma/build/index.js migrate dev",
+    "prisma:migrate:prod": "node ./node_modules/prisma/build/index.js migrate deploy",
+    "postinstall": "node ./node_modules/prisma/build/index.js generate"
   },
   "type": "commonjs",
   "keywords": [],

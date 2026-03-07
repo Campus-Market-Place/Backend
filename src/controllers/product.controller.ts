@@ -303,7 +303,7 @@ export const getProductsByCategory = catchAsync(async (req: Request, res: Respon
       isActive: true,
       shop: {
         is: {
-          status: { in: ["APPROVED", "WARNING"] },
+          status: { in: [SellerStatuses.APPROVED, SellerStatuses.WARNING] },
         },
       },
     },

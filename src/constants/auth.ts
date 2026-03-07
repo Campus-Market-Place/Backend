@@ -8,6 +8,7 @@ export const SellerStatuses = {
   NONE: 'NONE',
   APPROVED: 'APPROVED',
   SUSPENDED: 'SUSPENDED',
+  WARNING: 'WARNING',
 } as const;
 
 export type Role = (typeof Roles)[keyof typeof Roles];

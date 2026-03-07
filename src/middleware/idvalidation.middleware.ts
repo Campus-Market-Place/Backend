@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../errors/apperror.js';
 import { config } from '../config.js';
 import { prisma } from '../lib/prisma.js';
+import { SellerStatuses } from '../constants/auth.js';
 
 export const validateShop = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -18,8 +19,8 @@ export const validateShop = () => {
       throw new ConflictError('shop id is required and must be a string');
     }
 
-    const shop = await prisma.shop.findUnique({
-      where: { id: shopId, status: { in: ["APPROVED", "WARNING"] } }
+    const shop = await prisma.shop.findFirst({
+      where: { id: shopId, status: { in: [SellerStatuses.APPROVED, SellerStatuses.WARNING] } }
     });
 
     console.log("Shop found in validation middleware:", shop);
