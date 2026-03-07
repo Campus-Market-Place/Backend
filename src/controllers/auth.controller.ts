@@ -12,6 +12,7 @@ import { Roles, SellerStatuses } from '../constants/auth.js';
 import express from "express";
 import { verifyTelegram } from "../lib/verifyTelegram.js";
 import jwt from "jsonwebtoken";
+import { config } from '../config.js';
 
 export const login = catchAsync(async (req: Request, res: Response) => {
   const telegram_id = req.body.telegram_id as string;
@@ -98,7 +99,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
   const { initData } = req.body;
 
-  const BOT_TOKEN = process.env.BOT_TOKEN!;
+  const BOT_TOKEN = config.Bot_token;
 
   const isValid = verifyTelegram(initData, BOT_TOKEN);
 
