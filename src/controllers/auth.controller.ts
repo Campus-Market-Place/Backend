@@ -176,6 +176,7 @@ export const me = catchAsync(async (req: Request, res: Response) => {
   res.status(200).json({
     id: user.id,
     telegram_id : user.telegramId,
+    telegram_chat_id : user.telegramchatId,
     username: user.username,
     role: user.role,
     createdAt: user.createdAt,
