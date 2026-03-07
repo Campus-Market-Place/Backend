@@ -412,17 +412,23 @@ export const getProductDetails = catchAsync(async (req: Request, res: Response) 
 
 
   if (product) {
-    await prisma.follow.findUnique({
-      where: {
-        userId_shopId: {
-          userId: req.user?.id || "",
-          shopId: product.shopId || "",
+    (product.shop as any).isFollowed = false;
+
+    if (req.user?.id) {
+      const follow = await prisma.follow.findUnique({
+        where: {
+          userId_shopId: {
+            userId: req.user.id,
+            shopId: product.shopId,
+          },
         },
-      },
-    }).then((follow) => {
-      // Add isFollowed property to shop object
+        select: {
+          id: true,
+        },
+      });
+
       (product.shop as any).isFollowed = !!follow;
-    });
+    }
   }
 
   if (!product || product.status !== "APPROVED") {
