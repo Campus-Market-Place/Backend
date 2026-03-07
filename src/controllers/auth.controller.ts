@@ -99,6 +99,16 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
   const { initData } = req.body;
 
+ logger.info({
+    event: 'telegram_login_attempt',
+    requestId: req.requestId,
+    initDataProvided: !!initData,
+  });
+
+  if (!initData || typeof initData !== "string") {
+    return res.status(400).json({ error: "initData is required and must be a string" });
+  }
+
   const BOT_TOKEN = config.Bot_token;
 
   const isValid = verifyTelegram(initData, BOT_TOKEN);

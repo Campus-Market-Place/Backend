@@ -1,7 +1,14 @@
 import crypto from "crypto";
+import { logger } from "./logger";
 
 export function verifyTelegram(initData: string, botToken: string) {
   const params = new URLSearchParams(initData);
+
+  logger.info({
+    event: 'verify_telegram_attempt',
+    requestId: '', // You can pass the requestId if available
+    initDataProvided: !!initData,
+  });
 
   const hash = params.get("hash");
   params.delete("hash");
