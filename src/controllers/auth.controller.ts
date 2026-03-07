@@ -9,11 +9,14 @@ import {
 } from '../errors/apperror.js';
 import { logger } from '../lib/logger.js';
 import { Roles, SellerStatuses } from '../constants/auth.js';
+import express from "express";
+import { verifyTelegram } from "../lib/verifyTelegram.js";
+import jwt from "jsonwebtoken";
 
 export const login = catchAsync(async (req: Request, res: Response) => {
   const telegram_id = req.body.telegram_id as string;
   const rawUsername = req.body.telegram_username as string;
-  const telegramchatId = req.body.telegram_chat_id as string;
+  // const telegramchatId = req.body.telegram_chat_id as string;
 
   if (!telegram_id) {
     throw new ForbiddenError('Telegram ID is required');
@@ -38,7 +41,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
         telegramId: telegram_id,
         username,
         role: Roles.USER,
-        telegramchatId
+        telegramchatId: ''
 
       },
     });
@@ -81,6 +84,55 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
+
+// src/routes/auth.ts
+
+
+export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
+  const { initData } = req.body;
+
+  const BOT_TOKEN = process.env.BOT_TOKEN!;
+
+  const isValid = verifyTelegram(initData, BOT_TOKEN);
+
+  if (!isValid) {
+    return res.status(401).json({ error: "Invalid Telegram data" });
+  }
+
+  const params = new URLSearchParams(initData);
+  const user = JSON.parse(params.get("user") || "{}");
+
+  const userId = user.id;
+
+  // TODO: find or create user in database
+    let existingUser = await prisma.user.findUnique({
+    where: { telegramId: userId.toString() },
+  });
+
+  if (!existingUser) {
+    existingUser = await prisma.user.create({
+      data: {
+        telegramId: userId.toString(),
+        username: user.username,
+        role: Roles.USER,
+        telegramchatId: ''
+      },
+    });
+  }
+
+  const token = jwt.sign(
+    { userId },
+    process.env.JWT_SECRET!,
+    { expiresIn: "7d" }
+  );
+
+  res.json({
+    token,
+    user
+  });
+});
+
 
 
 
