@@ -16,7 +16,7 @@ import jwt from "jsonwebtoken";
 export const login = catchAsync(async (req: Request, res: Response) => {
   const telegram_id = req.body.telegram_id as string;
   const rawUsername = req.body.telegram_username as string;
-  // const telegramchatId = req.body.telegram_chat_id as string;
+  const rawTelegramChatId = req.body.telegram_chat_id as string | undefined;
 
   if (!telegram_id) {
     throw new ForbiddenError('Telegram ID is required');
@@ -26,6 +26,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     throw new ForbiddenError('Telegram username is required');
   }
   const username = rawUsername.trim().toLowerCase();
+  const telegramChatId =
+    typeof rawTelegramChatId === 'string' && rawTelegramChatId.trim().length > 0
+      ? rawTelegramChatId.trim()
+      : telegram_id;
 
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram_id },
@@ -41,7 +45,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
         telegramId: telegram_id,
         username,
         role: Roles.USER,
-        telegramchatId: ''
+        telegramchatId: telegramChatId
 
       },
     });
@@ -69,6 +73,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     requestId: req.requestId,
     userId: user.id,
     username: user.username,
+    telegramChatId: user.telegramchatId,
   });
 
   res.status(200).json({
@@ -78,6 +83,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       telegram_id : user.telegramId,
       username: user.username,
       role: user.role,
+      telegramChatId: user.telegramchatId,
 
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -116,7 +122,7 @@ export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
         telegramId: userId.toString(),
         username: user.username,
         role: Roles.USER,
-        telegramchatId: ''
+        telegramchatId: userId.toString()
       },
     });
   }
