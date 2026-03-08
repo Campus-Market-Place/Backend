@@ -110,13 +110,33 @@ export const toggleFollowShop = catchAsync(
         },
       });
 
-      if (shop?.seller?.user?.telegramchatId) {
-        await sendTelegramMessage(shop.seller.user.telegramchatId, 
+      const ownerChatId = shop?.seller?.user?.telegramchatId;
+      const isValidChatId = typeof ownerChatId === "string" && /^-?\d+$/.test(ownerChatId);
+
+      if (shop && isValidChatId) {
+        try {
+          await sendTelegramMessage(ownerChatId, 
   `🎉 Your shop "${shop.shopName}" has a new follower! \n
 👤 User: ${req.user?.username || "Anonymous"} \n
 📈 Total Followers: ${shop.followersCount} \n
 🔥 Keep posting to attract more customers! 
 `);
+        } catch (error) {
+          logger.warn({
+            event: "follow_notification_failed",
+            requestId: req.requestId,
+            shopId,
+            ownerChatId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      } else if (ownerChatId) {
+        logger.warn({
+          event: "follow_notification_skipped_invalid_chat_id",
+          requestId: req.requestId,
+          shopId,
+          ownerChatId,
+        });
       }
     }
 

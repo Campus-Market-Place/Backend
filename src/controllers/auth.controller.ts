@@ -17,7 +17,7 @@ import { config } from '../config.js';
 export const login = catchAsync(async (req: Request, res: Response) => {
   const telegram_id = req.body.telegram_id as string;
   const rawUsername = req.body.telegram_username as string;
-  const rawTelegramChatId = req.body.telegram_chat_id as string | undefined;
+  const rawTelegramChatId = req.body.telegram_chat_id as string;
 
   if (!telegram_id) {
     throw new ForbiddenError('Telegram ID is required');
@@ -26,11 +26,16 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   if (!rawUsername) {
     throw new ForbiddenError('Telegram username is required');
   }
+
+    if (!rawTelegramChatId) {
+    throw new ForbiddenError('Telegram chat ID is required');
+  }
+  
   const username = rawUsername.trim().toLowerCase();
-  const telegramChatId =
-    typeof rawTelegramChatId === 'string' && rawTelegramChatId.trim().length > 0
+  const telegramChatId = rawTelegramChatId;
+ /*    typeof rawTelegramChatId === 'string' && rawTelegramChatId.trim().length > 0
       ? rawTelegramChatId.trim()
-      : telegram_id;
+      : telegram_id; */
 
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram_id },
