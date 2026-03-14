@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { signJwt } from '../lib/jwt.js';
 import { catchAsync } from '../middleware/wrapper.js';
@@ -18,6 +19,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   const telegram_id = req.body.telegram_id as string;
   const rawUsername = req.body.telegram_username as string;
   const rawTelegramChatId = req.body.telegram_chat_id as string;
+
+  let sellerShop: Prisma.SellerProfileGetPayload<{
+    include: { shop: true };
+  }> | null = null;
 
   if (!telegram_id) {
     throw new ForbiddenError('Telegram ID is required');
@@ -43,6 +48,26 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 
   if (user?.deletedAt) {
     throw new ForbiddenError('User is deactivated');
+  }
+
+  if(user && user.role === Roles.SELLER) {
+ 
+      sellerShop = await prisma.sellerProfile.findUnique({
+      where: { userId: user.id },
+      include: { shop: true },
+    });
+
+    if (!sellerShop) {
+      throw new NotFoundError('Seller profile not found');
+    }
+
+    if (!sellerShop.shop) {
+      throw new NotFoundError('Associated shop not found');
+    }
+
+    if (sellerShop.shop.status === SellerStatuses.SUSPENDED) {
+      throw new ForbiddenError('Seller account is suspended');
+    }
   }
 
   if (!user) {
@@ -90,7 +115,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       username: user.username,
       role: user.role,
       telegramChatId: user.telegramchatId,
-
+      shopid: sellerShop?.shop?.id ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
