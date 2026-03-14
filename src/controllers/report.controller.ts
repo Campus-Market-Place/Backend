@@ -148,7 +148,7 @@ export const getReportsforshop = catchAsync(async (req: Request, res: Response) 
 
 // send appeal for a shop a seller can send appeal for a shop if it is suspended
 export const sendAppeal = catchAsync(async (req: Request, res: Response) => {
-    const shopId = req.shop?.id;
+    const shopId = req.params?.shopId;
     const userId = req.user?.id;
     const { reason } = req.body;
 
