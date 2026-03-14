@@ -17,10 +17,18 @@ export const openApiSpec = {
     schemas: {
       TelegramLoginRequest: {
         type: 'object',
-        required: ['telegram_username', 'telegram_id'],
+        required: ['telegram_username', 'telegram_id', 'telegram_chat_id'],
         properties: {
           telegram_username: { type: 'string', example: 'campus_user' },
           telegram_id: { type: 'string', example: '123456789' },
+          telegram_chat_id: { type: 'string', example: '123456789' },
+        },
+      },
+      TelegramInitDataRequest: {
+        type: 'object',
+        required: ['initData'],
+        properties: {
+          initData: { type: 'string', example: 'query_id=AAHdF6IQAAAAAN0XohDhrOrc&user=%7B%22id%22%3A123456789%7D&auth_date=1710000000&hash=...' },
         },
       },
       AuthResponse: {
@@ -31,9 +39,10 @@ export const openApiSpec = {
             type: 'object',
             properties: {
               id: { type: 'string' },
+              telegram_id: { type: 'string' },
               username: { type: 'string' },
               role: { type: 'string' },
-              sellerStatus: { type: 'string' },
+              telegramChatId: { type: 'string' },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
@@ -58,7 +67,7 @@ export const openApiSpec = {
       },
       SellerRequestForm: {
         type: 'object',
-        required: ['shopName', 'discription', 'campusLocation', 'mainPhone', 'agreedToRules', 'categoryId', 'image'],
+        required: ['shopName', 'discription', 'campusLocation', 'mainPhone', 'agreedToRules', 'categoryId', 'image', 'profileImage'],
         properties: {
           shopName: { type: 'string', example: 'Campus Tech Store' },
           discription: { type: 'string', example: 'Quality gadgets and accessories' },
@@ -66,7 +75,7 @@ export const openApiSpec = {
           mainPhone: { type: 'string', example: '+233555555' },
           secondaryPhone: { type: 'string' },
           categoryId: { type: 'string', example: 'uuid' },
-          agreedToRules: { type: 'boolean', enum: [true, false], example: true },
+          agreedToRules: { type: 'string', enum: ['1'], example: '1' },
           instagram: { type: 'string' },
           telegram: { type: 'string' },
           tiktok: { type: 'string' },
@@ -80,6 +89,27 @@ export const openApiSpec = {
             type: 'array',
             items: { type: 'string', format: 'binary' },
             description: 'One profile image'
+          },
+        },
+      },
+      SellerProfileUpdateRequest: {
+        type: 'object',
+        properties: {
+          shopName: { type: 'string', example: 'Campus Tech Store' },
+          discription: { type: 'string', example: 'Updated shop bio' },
+          campusLocation: { type: 'string', example: 'block-12' },
+          mainPhone: { type: 'string', example: '+233555555' },
+          secondaryPhone: { type: 'string' },
+          categoryId: { type: 'string', example: 'uuid' },
+          agreedToRules: { oneOf: [{ type: 'string', example: '1' }, { type: 'boolean', example: true }] },
+          instagram: { type: 'string' },
+          telegram: { type: 'string' },
+          tiktok: { type: 'string' },
+          other: {
+            oneOf: [
+              { type: 'string', example: 'snapchat' },
+              { type: 'array', items: { type: 'string' }, example: ['snapchat', 'website'] },
+            ],
           },
         },
       },
@@ -137,6 +167,13 @@ export const openApiSpec = {
           productId: { type: 'string', example: 'uuid' },
         },
       },
+      UnsaveProductRequest: {
+        type: 'object',
+        required: ['productId'],
+        properties: {
+          productId: { type: 'string', example: 'uuid' },
+        },
+      },
     },
   },
   paths: {
@@ -180,6 +217,31 @@ export const openApiSpec = {
           },
           400: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           403: { description: 'Forbidden', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/auth/telegram': {
+      post: {
+        summary: 'Login using Telegram Web App init data',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/TelegramInitDataRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Authenticated successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthResponse' },
+              },
+            },
+          },
+          400: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -229,7 +291,7 @@ export const openApiSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/SellerRequestForm' },
+              schema: { $ref: '#/components/schemas/SellerProfileUpdateRequest' },
             },
           },
         },
@@ -244,13 +306,11 @@ export const openApiSpec = {
     '/api/shop/{shopId}': {
       get: {
         summary: 'Get shop profile',
-        security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
         ],
         responses: {
           200: { description: 'Shop profile returned' },
-          401: { description: 'Unauthorized' },
           404: { description: 'Not found' },
         },
       },
@@ -453,7 +513,7 @@ export const openApiSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/SaveProductRequest' },
+              schema: { $ref: '#/components/schemas/UnsaveProductRequest' },
             },
           },
         },
@@ -522,6 +582,69 @@ export const openApiSpec = {
         ],
         responses: {
           200: { description: 'Products returned' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+    '/api/engagement/{shopId}/view': {
+      post: {
+        summary: 'Track shop view',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'View tracked successfully' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+    '/api/engagement/{shopId}/social-media-click': {
+      post: {
+        summary: 'Track shop social media click',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Social media click tracked successfully' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+    '/api/engagement/{shopId}/contact-click': {
+      post: {
+        summary: 'Track shop contact click',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Contact click tracked successfully' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+    '/api/engagement/{shopId}/statistics': {
+      get: {
+        summary: 'Get shop engagement statistics',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+          {
+            name: 'timeFrame',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['day', 'week', 'month', 'year'], example: 'day' },
+          },
+        ],
+        responses: {
+          200: { description: 'Statistics returned' },
+          400: { description: 'Validation error' },
           401: { description: 'Unauthorized' },
           404: { description: 'Not found' },
         },
