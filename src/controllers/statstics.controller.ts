@@ -94,8 +94,53 @@ const getTimeWindow = (timeFrame: TimeFrame, now: Date) => {
 
 const calculatePercentChange = (current: number, previous: number) => {
   if (previous === 0 && current === 0) return 0;
-  if (previous === 0) return null;
+  if (previous === 0) return 0;
   return Number((((current - previous) / previous) * 100).toFixed(2));
+};
+
+const getRangeMetrics = async (
+  shopId: string,
+  start: Date,
+  end: Date
+) => {
+  const [totals, latestSnapshot] = await Promise.all([
+    prisma.shopAnalyticsDaily.aggregate({
+      where: {
+        shopId,
+        date: {
+          gte: start,
+          lt: end,
+        },
+      },
+      _sum: {
+        views: true,
+        contacts: true,
+        socialChecks: true,
+        uniqueFollower: true,
+      },
+    }),
+    prisma.shopAnalyticsDaily.findFirst({
+      where: {
+        shopId,
+        date: {
+          gte: start,
+          lt: end,
+        },
+      },
+      orderBy: { date: "desc" },
+      select: {
+        followers: true,
+      },
+    }),
+  ]);
+
+  return {
+    views: totals._sum.views ?? 0,
+    contacts: totals._sum.contacts ?? 0,
+    socialMediaClicks: totals._sum.socialChecks ?? 0,
+    newFollowers: totals._sum.uniqueFollower ?? 0,
+    totalFollowers: latestSnapshot?.followers ?? 0,
+  };
 };
 
 export const getShopStatistics = catchAsync(
@@ -115,55 +160,22 @@ export const getShopStatistics = catchAsync(
       now
     );
 
-    const [currentAnalytics, previousAnalytics] =
-      await Promise.all([
-        prisma.shopAnalyticsDaily.findFirst({
-          where: {
-            shopId,
-            date: {
-              gte: currentStart,
-              lt: currentEnd,
-            },
-          },
-          select: {
-            views: true,
-            contacts: true,
-            socialChecks: true,
-            uniqueFollower: true,
-            followers: true,
-            date: true,
-          }
-        }),
-        prisma.shopAnalyticsDaily.findFirst({
-          where: {
-            shopId,
-            date: {
-              gte: previousStart,
-              lt: previousEnd,
-            },
-          },
-          select: {
-            views: true,
-            contacts: true,
-            socialChecks: true,
-            uniqueFollower: true,
-            followers: true,
-            date: true,
-          },
-        }),
-      ]);
+    const [currentMetrics, previousMetrics] = await Promise.all([
+      getRangeMetrics(shopId, currentStart, currentEnd),
+      getRangeMetrics(shopId, previousStart, previousEnd),
+    ]);
 
-    const views = currentAnalytics?.views ?? 0;
-    const contacts = currentAnalytics?.contacts ?? 0;
-    const socialMediaClicks = currentAnalytics?.socialChecks ?? 0;
-    const newFollowers = currentAnalytics?.uniqueFollower ?? 0;
-    const totalFollowers = currentAnalytics?.followers ?? 0;
+    const views = currentMetrics.views;
+    const contacts = currentMetrics.contacts;
+    const socialMediaClicks = currentMetrics.socialMediaClicks;
+    const newFollowers = currentMetrics.newFollowers;
+    const totalFollowers = currentMetrics.totalFollowers;
 
-    const previousViews = previousAnalytics?.views ?? 0;
-    const previousContacts = previousAnalytics?.contacts ?? 0;
-    const previousSocialMediaClicks = previousAnalytics?.socialChecks ?? 0;
-    const previousNewFollowers = previousAnalytics?.uniqueFollower ?? 0;
-    const previousTotalFollowers = previousAnalytics?.followers ?? 0;
+    const previousViews = previousMetrics.views;
+    const previousContacts = previousMetrics.contacts;
+    const previousSocialMediaClicks = previousMetrics.socialMediaClicks;
+    const previousNewFollowers = previousMetrics.newFollowers;
+    const previousTotalFollowers = previousMetrics.totalFollowers;
 
     const ctr = views > 0 ? Number((((contacts + socialMediaClicks) / views) * 100).toFixed(2)) : 0;
     const followersVsViewsRatio = views > 0 ? Number(((newFollowers / views) * 100).toFixed(2)) : 0;
@@ -204,7 +216,7 @@ export const getShopStatistics = catchAsync(
           contacts,
           socialMediaClicks,
           newFollowers,
-          totalFollowers: currentAnalytics?.followers ?? 0,
+          totalFollowers,
           contactvsviewsRatio: ctr,
           followersVsViewsRatio,
         },
