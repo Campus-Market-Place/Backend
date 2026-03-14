@@ -64,10 +64,6 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     if (!sellerShop.shop) {
       throw new NotFoundError('Associated shop not found');
     }
-
-    if (sellerShop.shop.status === SellerStatuses.SUSPENDED) {
-      throw new ForbiddenError('Seller account is suspended');
-    }
   }
 
   if (!user) {
