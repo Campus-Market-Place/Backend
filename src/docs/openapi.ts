@@ -174,6 +174,20 @@ export const openApiSpec = {
           productId: { type: 'string', example: 'uuid' },
         },
       },
+      AppealRequest: {
+        type: 'object',
+        required: ['reason'],
+        properties: {
+          reason: { type: 'string', example: 'We have resolved the reported issue and request re-review.' },
+        },
+      },
+      HandleAppealRequest: {
+        type: 'object',
+        required: ['action'],
+        properties: {
+          action: { type: 'string', enum: ['APPROVE', 'REJECT'], example: 'APPROVE' },
+        },
+      },
     },
   },
   paths: {
@@ -397,6 +411,18 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/products/search': {
+      post: {
+        summary: 'Search products',
+        parameters: [
+          { name: 'search', in: 'query', required: true, schema: { type: 'string' }, description: 'Search term for product name or description' },
+        ],
+        responses: {
+          200: { description: 'Search results returned' },
+          409: { description: 'Missing or invalid search query' },
+        },
+      },
+    },
     '/api/products/{id}': {
       delete: {
         summary: 'Delete product',
@@ -480,6 +506,52 @@ export const openApiSpec = {
         ],
         responses: {
           200: { description: 'Reports returned' },
+        },
+      },
+    },
+    '/api/report/appeal/{shopId}': {
+      post: {
+        summary: 'Send appeal for a shop',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'shopId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AppealRequest' },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Appeal created' },
+          400: { description: 'Validation error' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Shop not found' },
+        },
+      },
+    },
+    '/api/report/appeal/{id}/handle': {
+      post: {
+        summary: 'Handle appeal (approve or reject)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HandleAppealRequest' },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Appeal handled successfully' },
+          400: { description: 'Validation error' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Appeal not found' },
         },
       },
     },
