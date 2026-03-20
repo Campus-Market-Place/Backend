@@ -5,13 +5,14 @@ import { requireActiveSeller } from '../middleware/role.middleware.js';
 import { validateBody } from '../middleware/validate.middleware.js';
 import { ReportSchema } from '../validation/report.validation.js';
 import { createReport, getReportsforshop, handleAppeal, sendAppeal } from '../controllers/report.controller.js';
+import { requireShopOwner } from '../middleware/shopowner.middleware.js';
 export const reportRouter = Router();
 
 
 
-reportRouter.post('/:shopId', authMiddleware,validateShop(),validateBody(ReportSchema) ,createReport);
-reportRouter.get('/:shopId',authMiddleware,requireActiveSeller() ,validateShop(), getReportsforshop);
-reportRouter.post('/appeal/:shopId', authMiddleware ,sendAppeal);
+reportRouter.post('/:shopId', authMiddleware, validateShop(), requireShopOwner(), createReport);
+reportRouter.get('/:shopId', authMiddleware, requireActiveSeller(), validateShop(), getReportsforshop);
+reportRouter.post('/appeal/:shopId', authMiddleware, sendAppeal);
 
 // Admin
 // handle appeal
