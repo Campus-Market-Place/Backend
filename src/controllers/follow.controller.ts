@@ -9,10 +9,14 @@ import { sendTelegramMessage } from "../lib/Telegram_webhook.js";
 
 export const toggleFollowShop = catchAsync(
   async (req: Request, res: Response) => {
+
+
     const shopId = req.shop?.id;
     if (!shopId || Array.isArray(shopId)) {
       throw new ConflictError("Shop id is required and must be a string");
     }
+
+    
 
     const userId = req.user?.id;
     if (!userId) throw new NotFoundError("User context missing");

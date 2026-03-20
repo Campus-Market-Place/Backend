@@ -226,6 +226,55 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
 // });
 
+// serach a product by name or description
+export const searchProducts = catchAsync(async (req: Request, res: Response) => {
+  // query as ?search= ",
+
+  const { search } = req.query ;
+
+    if (!search || typeof search !== "string") {
+        throw new ConflictError("Search query is required and must be a string");
+    }
+
+    const products = await prisma.product.findMany({
+        where: {
+            OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } },
+            ],
+            status: "APPROVED",
+            isActive: true,
+        },
+        select: {
+            id: true,
+            name: true,
+            price: true,
+            categoryId: true,
+            shopId: true,
+            varified: true,
+            status: true,
+            ratingAverage: true,
+            createdAt: true,
+            images: {
+                where: { status: "APPROVED" },
+                select: { imagePath: true },
+                take: 1, // Get only one approved image for preview
+            },
+        },
+    });
+
+    logger.info({
+        event: 'product_search',  
+        requestId: req.requestId,
+        search,
+        resultsCount: products.length,
+    });
+
+    res.status(200).json({ data: { products }, message: "Search results fetched successfully" });
+});
+
+
+
 // get a product for a seller 
 export const getProductsByShop = catchAsync(async (req: Request, res: Response) => {
   const id = req.shop.id;
@@ -474,6 +523,46 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     await tx.product.delete({ where: { id } });
   });
   res.status(200).json({ message: "Product deleted successfully" });
+});
+
+// update product  
+export const updateProduct = catchAsync(async (req: Request, res: Response) => {
+  let { id } = req.params;
+  const { name, description, price, isActive } = req.body;
+
+  // Ensure id is a string
+  if (Array.isArray(id)) {
+    id = id[0];
+  }
+  if (!id || typeof id !== "string") {
+    throw new NotFoundError("Invalid product id");
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+  });
+
+  if (!product) {
+    throw new NotFoundError("Product not found");
+  }
+
+  const result = await prisma.product.update({
+    where: { id },
+    data: {
+      name,
+      description,
+      price,
+      isActive,
+    },
+  });
+
+  logger.info({
+    event: 'product_updated',
+    requestId: req.requestId,
+    productId: id,
+  });
+
+  res.status(200).json({ data: { product: result }, message: "Product updated successfully" });
 });
 
 // update product activness

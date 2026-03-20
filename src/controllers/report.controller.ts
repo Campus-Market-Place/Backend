@@ -171,9 +171,7 @@ export const sendAppeal = catchAsync(async (req: Request, res: Response) => {
         throw new NotFoundError("Shop not found");
     }
 
-    if (shop.status !== "SUSPENDED" && shop.status !== "WARNING") {
-        throw new ConflictError("Only suspended & warning shops can be appealed");
-    }
+
 
     const appeal = await prisma.appeal.create({
         data: {
