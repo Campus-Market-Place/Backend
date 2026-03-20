@@ -412,7 +412,7 @@ export const openApiSpec = {
       },
     },
     '/api/products/search': {
-      post: {
+      get: {
         summary: 'Search products',
         parameters: [
           { name: 'search', in: 'query', required: true, schema: { type: 'string' }, description: 'Search term for product name or description' },

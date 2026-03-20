@@ -271,6 +271,10 @@ export const handleAppeal = catchAsync(async (req: Request, res: Response) => {
                 reportsCount: 0,
             }
         });
+
+        await prisma.report.deleteMany({
+            where: { shopId: appeal.shop.id },
+        });
     }
 
     await sendTelegramMessage(appeal.seller.telegramchatId, `Your appeal for shop ${appeal.shop.shopName} has been ${action.toLowerCase()}d.`);
