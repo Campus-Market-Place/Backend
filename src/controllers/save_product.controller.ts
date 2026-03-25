@@ -94,6 +94,7 @@ export const getSavedProducts = catchAsync(async (req: Request, res: Response) =
                             isOpen: true
                         }
                     },
+                    isActive: true,
                     images: {
                         select: {
                             imagePath: true,

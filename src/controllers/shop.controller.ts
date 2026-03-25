@@ -37,8 +37,8 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
                     categoryId: true,
                     varified: true,
                     status: true,
-                    ratingAverage: true, 
-                    ratingCount: true,              
+                    ratingAverage: true,
+                    ratingCount: true,
                     images: {
                         where: { status: "APPROVED" },
                         select: { imagePath: true },
@@ -78,10 +78,11 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
                 userId: req.user?.id || "",
                 shopId: shop.id || "",
             },
+            isActive: true,
         },
     }).then((follow) => {
         // Add isFollowed property to shop object
-        (shop as any).isFollowed = !!follow;
+        (shop as any).isFollowed = follow?.isActive;
     });
 
 
