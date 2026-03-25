@@ -22,5 +22,5 @@ productRouter.get('/products/:categoryId', validateCategory(), getProductsByCate
 productRouter.get('/products/shop/:shopId', authMiddleware, requireActiveSeller(), validateShop(), getProductsByShop);
 productRouter.get('/products/details/:id', getProductDetails);
 productRouter.delete('/products/:id', authMiddleware, requireActiveSeller(), deleteProduct);
-productRouter.put('/products/:id', authMiddleware, requireActiveSeller(), validateProduct(), validateBody(CreateProductSchema), updateProduct);
+// productRouter.put('/products/:id', authMiddleware, requireActiveSeller(), validateProduct(), validateBody(CreateProductSchema), updateProduct);
 productRouter.put('/products/:productId', authMiddleware, requireActiveSeller(), validateProduct(), updateProductActiveStatus);

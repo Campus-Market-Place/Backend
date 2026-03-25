@@ -37,7 +37,8 @@ export const getShop = catchAsync(async (req: Request, res: Response) => {
                     categoryId: true,
                     varified: true,
                     status: true,
-                    ratingAverage: true,
+                    ratingAverage: true, 
+                    ratingCount: true,              
                     images: {
                         where: { status: "APPROVED" },
                         select: { imagePath: true },
