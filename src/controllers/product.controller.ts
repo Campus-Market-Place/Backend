@@ -254,6 +254,7 @@ export const searchProducts = catchAsync(async (req: Request, res: Response) => 
             varified: true,
             status: true,
             ratingAverage: true,
+            ratingCount: true,
             createdAt: true,
             images: {
                 where: { status: "APPROVED" },
