@@ -130,7 +130,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
                         frontImageHash: verificationResult.frontHash,
                         backImageHash: verificationResult.backHash,
                         frontIdImagePublicId: frontUpload?.public_id ?? "",
-                        backIdImagePublicId: backUpload?.public_id  ?? "", 
+                        backIdImagePublicId: backUpload?.public_id ?? "",
                     },
                 });
 
@@ -180,7 +180,7 @@ export const submitSellerRequest = catchAsync(async (req: Request, res: Response
         }
         throw error;
     }
-    
+
 });
 
 
@@ -222,8 +222,7 @@ export const getSellerProfile = catchAsync(async (req: Request, res: Response) =
 export const updateSellerProfile = catchAsync(async (req: Request, res: Response) => {
     if (!req.user) throw new NotFoundError("User context missing");
 
-    const toBoolean = (value: any): boolean =>
-        value === true || value === "true" || value === "1";
+    const toBoolean = (value: any): boolean => value === true || value === "true" || value === "1";
 
     const {
         shopName,
@@ -238,6 +237,9 @@ export const updateSellerProfile = catchAsync(async (req: Request, res: Response
         tiktok,
         other,
     } = req.body;
+
+    const fileMap = req.files as Record<string, Express.Multer.File[]> | undefined;
+    const profileImageFile = fileMap?.profileImage?.[0];
 
     const profile = await prisma.sellerProfile.findUnique({
         where: { userId: req.user.id },
@@ -279,27 +281,55 @@ export const updateSellerProfile = catchAsync(async (req: Request, res: Response
     if (discription !== undefined) shopData.bio = discription;
     if (categoryId !== undefined) shopData.categoryId = categoryId;
 
+    let shopImageUpload: { public_id: string; secure_url: string } | null = null;
+    const oldShopImagePublicId = profile.shop?.profileImagePublicId ?? null;
+
+    if (profileImageFile?.buffer) {
+        shopImageUpload = await uploadImageBuffer(profileImageFile.buffer, { folder: "shop-images" });
+        shopData.profileImageUrl = shopImageUpload.secure_url;
+        shopData.profileImagePublicId = shopImageUpload.public_id;
+    }
+
     if (Object.keys(profileData).length === 0 && Object.keys(shopData).length === 0) {
         throw new ConflictError("No updatable fields provided");
     }
 
-    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const updatedProfile = Object.keys(profileData).length
-            ? await tx.sellerProfile.update({
-                where: { id: profile.id },
-                data: profileData,
-            })
-            : profile;
 
-        if (profile.shop && Object.keys(shopData).length) {
-            await tx.shop.update({
-                where: { id: profile.shop.id },
-                data: shopData,
-            });
+
+
+    if (!profile.shop && Object.keys(shopData).length) {
+        throw new NotFoundError("Seller shop not found");
+    }
+
+    let updated;
+    try {
+        updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const updatedProfile = Object.keys(profileData).length
+                ? await tx.sellerProfile.update({
+                    where: { id: profile.id },
+                    data: profileData,
+                })
+                : profile;
+
+            if (profile.shop && Object.keys(shopData).length) {
+                await tx.shop.update({
+                    where: { id: profile.shop.id },
+                    data: shopData,
+                });
+            }
+
+            return updatedProfile;
+        });
+    } catch (error) {
+        if (shopImageUpload?.public_id) {
+            await deleteCloudinaryAsset(shopImageUpload.public_id, "upload");
         }
+        throw error;
+    }
 
-        return updatedProfile;
-    });
+    if (shopImageUpload && oldShopImagePublicId) {
+        await deleteCloudinaryAsset(oldShopImagePublicId, "upload");
+    }
 
     res.status(200).json({
         message: "Seller profile updated successfully",
