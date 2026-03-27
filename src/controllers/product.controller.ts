@@ -16,7 +16,7 @@ import { Roles, SellerStatuses } from '../constants/auth.js';
 import { scoreImage } from "./image_detection.controller.js";
 import { ImageStatus } from "../constants/image.js";
 import { getUploadedFiles } from '../lib/uplode_file.js';
-import { uploadMulterFiles } from "../lib/cloudinary_upload.js";
+import { uploadImageBuffer, uploadMulterFiles } from "../lib/cloudinary_upload.js";
 import { getShopFollowers } from './follow.controller.js';
 import { sendTelegramMessage } from '../lib/Telegram_webhook.js';
 
@@ -528,7 +528,12 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
 // update product  
 export const updateProduct = catchAsync(async (req: Request, res: Response) => {
   let { id } = req.params;
-  const { name, description, price, isActive } = req.body;
+  const { name, description, price, isActive, categoryId } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new NotFoundError("User context missing");
+  }
 
   // Ensure id is a string
   if (Array.isArray(id)) {
@@ -546,14 +551,75 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
     throw new NotFoundError("Product not found");
   }
 
-  const result = await prisma.product.update({
-    where: { id },
-    data: {
-      name,
-      description,
-      price,
-      isActive,
-    },
+  const files = getUploadedFiles(req);
+
+  if (categoryId !== undefined) {
+    if (typeof categoryId !== "string" || !/^[0-9a-fA-F-]{36}$/.test(categoryId)) {
+      throw new ConflictError("Invalid categoryId format");
+    }
+
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw new NotFoundError("Category not found");
+    }
+  }
+
+  const data: Prisma.ProductUpdateInput = {};
+
+  if (name !== undefined) data.name = name;
+  if (description !== undefined) data.description = description;
+  if (categoryId !== undefined) data.category = { connect: { id: categoryId } };
+  if (isActive !== undefined) data.isActive = isActive;
+  if (price !== undefined) {
+    const parsedPrice = Number(price);
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      throw new ConflictError("Price must be a positive number");
+    }
+    data.price = parsedPrice;
+  }
+
+  const shouldUpdateImages = files.length > 0;
+
+  if (!Object.keys(data).length && !shouldUpdateImages) {
+    throw new ConflictError("No updatable fields provided");
+  }
+
+  let uploadedImageUrls: string[] = [];
+
+  if (shouldUpdateImages) {
+    const uploads = await Promise.all(
+      files.map((file) => uploadImageBuffer(file.buffer, { folder: "products" }))
+    );
+    uploadedImageUrls = uploads.map((upload) => upload.secure_url);
+  }
+
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const updatedProduct = Object.keys(data).length
+      ? await tx.product.update({
+        where: { id },
+        data,
+      })
+      : product;
+
+    if (uploadedImageUrls.length) {
+      await tx.productImage.deleteMany({ where: { productId: id } });
+      await tx.productImage.createMany({
+        data: uploadedImageUrls.map((imagePath) => ({
+          productId: id,
+          userId,
+          imagePath,
+          status: "APPROVED" as ImageStatus,
+          phash: "",
+          score: 0,
+        })),
+      });
+    }
+
+    return updatedProduct;
   });
 
   logger.info({
