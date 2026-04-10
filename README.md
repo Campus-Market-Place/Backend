@@ -40,6 +40,17 @@ To get a local copy up and running follow these simple steps.
 - Node.js installed
 - PostgreSQL installed
 
+### **Docker**
+The repository now includes Docker support for the API and a local Postgres database.
+
+```bash
+docker compose up --build
+```
+
+That starts the API on `http://localhost:3000` and Postgres on `localhost:5432`.
+
+If you want to override secrets or run the app outside Docker, copy `.env.example` to `.env` and fill in the values.
+
 ### **Installation**
 1. Clone the repo
    ```bash
@@ -61,6 +72,10 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=7d
 ADMIN_USERNAMES=admin_username_1,admin_username_2
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+BOT_TOKEN=
 ```
 
 ### **Database Setup**
@@ -68,7 +83,7 @@ Generate the Prisma client and run migrations:
 
 ```bash
 npm run prisma:generate
-npm run prisma:migrate
+npm run prisma:migrate:dev
 ```
 
 ## **API Endpoints**
