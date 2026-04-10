@@ -1,0 +1,9 @@
+export declare const createProduct: (req: any, res: any, next: any) => void;
+export declare const searchProducts: (req: any, res: any, next: any) => void;
+export declare const getProductsByShop: (req: any, res: any, next: any) => void;
+export declare const getProductsByCategory: (req: any, res: any, next: any) => void;
+export declare const getProductDetails: (req: any, res: any, next: any) => void;
+export declare const deleteProduct: (req: any, res: any, next: any) => void;
+export declare const updateProduct: (req: any, res: any, next: any) => void;
+export declare const updateProductActiveStatus: (req: any, res: any, next: any) => void;
+//# sourceMappingURL=product.controller.d.ts.map

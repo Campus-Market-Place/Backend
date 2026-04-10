@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.catchAsync = void 0;
+const catchAsync = (fn) => {
+    return (req, res, next) => {
+        Promise.resolve(fn(req, res, next)).catch((err) => {
+            console.error('Error in async function:', err);
+            next(err);
+        });
+    };
+};
+exports.catchAsync = catchAsync;
+//# sourceMappingURL=wrapper.js.map
