@@ -10,7 +10,7 @@ import os from "os";
 import path from "path";
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ storage: multer.memoryStorage() });
 
 /* =====================
    4. IMAGE ANALYSIS HELPERS

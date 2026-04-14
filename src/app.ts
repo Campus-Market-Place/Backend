@@ -20,6 +20,7 @@ import { reviewRouter } from './routes/review.router.js';
 import { shopRouter } from './routes/shop.router.js';
 import { enggagementRouter } from './routes/enggagement.router.js';
 import { botRouter } from './lib/Telegram_webhook.js';
+import { prisma } from './lib/prisma.js';
 
 
 
@@ -54,12 +55,18 @@ if (config.isdev) {
 
 app.use(helmet());
 app.use(cookieParser());
+app.disable('x-powered-by');
 
 app.use(requestLogger);
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 app.get('/health', (req: Request, res: Response) => res.json({ ok: true }));
+app.get('/api/health/db', async (_req: Request, res: Response) => {
+  await prisma.$queryRaw`SELECT 1`;
+  res.json({ ok: true, database: 'up' });
+});
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 app.use('/auth', authRouter);

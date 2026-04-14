@@ -1,7 +1,7 @@
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 type GlobalPrisma = {
 	prisma?: PrismaClient;
@@ -25,7 +25,7 @@ export const prisma =
 	globalForPrisma.prisma ??
 	new PrismaClient({
 		adapter,
-		errorFormat: "pretty",
+		errorFormat: 'pretty',
 	});
 
 if (!globalForPrisma.prisma) {

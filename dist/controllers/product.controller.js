@@ -196,6 +196,7 @@ exports.searchProducts = (0, wrapper_js_1.catchAsync)(async (req, res) => {
             varified: true,
             status: true,
             ratingAverage: true,
+            ratingCount: true,
             createdAt: true,
             images: {
                 where: { status: "APPROVED" },

@@ -15,7 +15,7 @@ const promises_1 = __importDefault(require("fs/promises"));
 const os_1 = __importDefault(require("os"));
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
-const upload = (0, multer_1.default)({ dest: "uploads/" });
+const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
 /* =====================
    4. IMAGE ANALYSIS HELPERS
    ===================== */
