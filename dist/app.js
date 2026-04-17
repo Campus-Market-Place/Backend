@@ -26,7 +26,6 @@ const review_router_js_1 = require("./routes/review.router.js");
 const shop_router_js_1 = require("./routes/shop.router.js");
 const enggagement_router_js_1 = require("./routes/enggagement.router.js");
 const Telegram_webhook_js_1 = require("./lib/Telegram_webhook.js");
-const prisma_js_1 = require("./lib/prisma.js");
 exports.app = (0, express_1.default)();
 if (config_js_1.config.isdev) {
     exports.app.use((0, cors_1.default)({
@@ -50,15 +49,9 @@ else {
 }
 exports.app.use((0, helmet_1.default)());
 exports.app.use((0, cookie_parser_1.default)());
-exports.app.disable('x-powered-by');
 exports.app.use(loggemiddleware_js_1.requestLogger);
-exports.app.use(express_1.default.json({ limit: '2mb' }));
-exports.app.use(express_1.default.urlencoded({ extended: true, limit: '2mb' }));
+exports.app.use(express_1.default.json());
 exports.app.get('/health', (req, res) => res.json({ ok: true }));
-exports.app.get('/api/health/db', async (_req, res) => {
-    await prisma_js_1.prisma.$queryRaw `SELECT 1`;
-    res.json({ ok: true, database: 'up' });
-});
 exports.app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(openapi_js_1.openApiSpec));
 exports.app.use('/auth', auth_router_js_1.authRouter);
 exports.app.use('/api/', user_router_js_1.userRouter);
