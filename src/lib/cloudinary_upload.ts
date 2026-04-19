@@ -120,9 +120,19 @@ export async function uploadMulterFiles(
 	options?: { folder?: string }
 ): Promise<UploadApiResponse[]> {
 	return Promise.all(
-		files.map((file) =>
-			uploadImageFileAndCleanup(file.path, { folder: options?.folder })
-		)
+		files.map((file) => {
+			if (file.buffer && file.buffer.length > 0) {
+				return uploadImageBuffer(file.buffer, { folder: options?.folder });
+			}
+
+			if (file.path) {
+				return uploadImageFileAndCleanup(file.path, { folder: options?.folder });
+			}
+
+			throw new Error(
+				`Unable to upload file '${file.originalname}': missing both buffer and path`
+			);
+		})
 	);
 }
 
