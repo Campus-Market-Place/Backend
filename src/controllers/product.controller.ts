@@ -94,31 +94,22 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
   });
 
   // get shop
-  const shopDetails = await prisma.shop.findUnique({
-    where: { id: shop },
-  })
+  // const shopDetails = await prisma.shop.findUnique({
+  //   where: { id: shop },
+  // })
 
 
-  const followers = await prisma.follow.findMany({
-    where: { shopId: shop, isActive: true },
-    select: {
-      user: {
-        select: {
-          telegramchatId: true,
-        },
-      },
-    },
-  });
 
-  const message = `📢 New product alert!\n\n🛍️ ${result.name} is now available in ${req.shop?.shopName || "our shop"}\n\n💰 Price: $${result.price}\n\n👀 Check it out before it's gone!`;
 
-  const telegramRecipients = followers
-    .map((follower) => follower.user.telegramchatId)
-    .filter((chatId): chatId is string => Boolean(chatId));
+  // const message = `📢 New product alert!\n\n🛍️ ${result.name} is now available in ${req.shop?.shopName || "our shop"}\n\n💰 Price: $${result.price}\n\n👀 Check it out before it's gone!`;
 
-  await Promise.allSettled(
-    telegramRecipients.map((chatId) => sendTelegramMessage(chatId, message))
-  );
+  // const telegramRecipients = followers
+  //   .map((follower) => follower.user.telegramchatId)
+  //   .filter((chatId): chatId is string => Boolean(chatId));
+
+  // await Promise.allSettled(
+  //   telegramRecipients.map((chatId) => sendTelegramMessage(chatId, message))
+  // );
 
 
 
@@ -648,9 +639,51 @@ export const updateProductActiveStatus = catchAsync(async (req: Request, res: Re
     throw new NotFoundError("Invalid product id");
   }
 
-  await prisma.product.update({
+  const updatedProduct = await prisma.product.update({
     where: { id },
     data: { isActive },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      shopId: true,
+      shop: {
+        select: {
+          shopName: true,
+        },
+      },
+    },
+  });
+
+  if (isActive) {
+    const followers = await prisma.follow.findMany({
+      where: { shopId: updatedProduct.shopId, isActive: true },
+      select: {
+        user: {
+          select: {
+            telegramchatId: true,
+          },
+        },
+      },
+    });
+
+    const message = `📢 New product alert!\n\n🛍️ ${updatedProduct.name} is now available in ${updatedProduct.shop?.shopName || "our shop"}\n\n💰 Price: $${updatedProduct.price}\n\n👀 Check it out before it's gone!`;
+
+    const telegramRecipients = followers
+      .map((follower) => follower.user.telegramchatId)
+      .filter((chatId): chatId is string => Boolean(chatId));
+
+    await Promise.allSettled(
+      telegramRecipients.map((chatId) => sendTelegramMessage(chatId, message))
+    );
+    
+  }
+
+  logger.info({
+    event: 'product_active_status_updated',
+    requestId: req.requestId,
+    productId: id,
+    isActive,
   });
 
   res.status(200).json({ message: "Product active status updated successfully" });
