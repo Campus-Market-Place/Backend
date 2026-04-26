@@ -160,7 +160,7 @@ export const get_user_state = catchAsync(async (req: Request, res: Response) => 
 
 
 export const update_state = catchAsync(async (req: Request, res: Response) => {
-  const user_id = req.query.user_id as string;
+  const user_id = req.params.userId as string;
  
   // 🔹 1. Find user WITH state
   let user = await prisma.user.findUnique({
