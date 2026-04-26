@@ -136,14 +136,16 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const get_user_state = catchAsync(async (req: Request, res: Response) => {
-  const telegram_id = req.query.telegram_id as string;
+  const user_id = req.query.user_id as string;
 
-  if (!telegram_id) throw new ForbiddenError('Telegram ID is required');
+    if (!user_id) throw new ForbiddenError('User ID is required');
 
+  // 🔹 1. Find user WITH state
   const user = await prisma.user.findUnique({
-    where: { telegramId: telegram_id },
+    where: { id: user_id },
     include: { userState: true },
   });
+
 
   if (!user) {
     throw new UnauthorizedError('User not found');
@@ -158,14 +160,11 @@ export const get_user_state = catchAsync(async (req: Request, res: Response) => 
 
 
 export const update_state = catchAsync(async (req: Request, res: Response) => {
-  const telegram_id = req.body.telegram_id as string;
-  
-
-  if (!telegram_id) throw new ForbiddenError('Telegram ID is required');
+  const user_id = req.query.user_id as string;
  
   // 🔹 1. Find user WITH state
   let user = await prisma.user.findUnique({
-    where: { telegramId: telegram_id },
+    where: { id: user_id },
     include: { userState: true },
   });
   
