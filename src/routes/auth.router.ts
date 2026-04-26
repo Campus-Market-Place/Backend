@@ -8,4 +8,4 @@ export const authRouter = Router();
 authRouter.get('/me', me);
 authRouter.post('/login', validateBody(telegramLoginSchema), login);
 authRouter.post('/telegram', telegramLogin);
-authRouter.post('/users/:userId/state', update_state);
+authRouter.patch('/users/:userId/state', update_state);
