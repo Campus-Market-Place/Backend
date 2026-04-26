@@ -20,61 +20,40 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   const rawUsername = req.body.telegram_username as string;
   const rawTelegramChatId = req.body.telegram_chat_id as string;
 
-  let sellerShop: Prisma.SellerProfileGetPayload<{
-    include: { shop: true };
-  }> | null = null;
+  if (!telegram_id) throw new ForbiddenError('Telegram ID is required');
+  if (!rawUsername) throw new ForbiddenError('Telegram username is required');
+  if (!rawTelegramChatId) throw new ForbiddenError('Telegram chat ID is required');
 
-  if (!telegram_id) {
-    throw new ForbiddenError('Telegram ID is required');
-  }
-
-  if (!rawUsername) {
-    throw new ForbiddenError('Telegram username is required');
-  }
-
-    if (!rawTelegramChatId) {
-    throw new ForbiddenError('Telegram chat ID is required');
-  }
-  
   const username = rawUsername.trim().toLowerCase();
-  const telegramChatId = rawTelegramChatId;
- /*    typeof rawTelegramChatId === 'string' && rawTelegramChatId.trim().length > 0
-      ? rawTelegramChatId.trim()
-      : telegram_id; */
+  const telegramChatId = rawTelegramChatId.trim();
 
+  // 🔹 1. Find user WITH state
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram_id },
+    include: { userState: true },
   });
 
+  // 🔴 If user exists but deleted
   if (user?.deletedAt) {
     throw new ForbiddenError('User is deactivated');
   }
 
-  if(user && user.role === Roles.SELLER) {
- 
-      sellerShop = await prisma.sellerProfile.findUnique({
-      where: { userId: user.id },
-      include: { shop: true },
-    });
-
-    if (!sellerShop) {
-      throw new NotFoundError('Seller profile not found');
-    }
-
-    if (!sellerShop.shop) {
-      throw new NotFoundError('Associated shop not found');
-    }
-  }
-
+  // 🔹 2. Create user if not exists
   if (!user) {
     user = await prisma.user.create({
       data: {
         telegramId: telegram_id,
         username,
         role: Roles.USER,
-        telegramchatId: telegramChatId
-
+        telegramchatId: telegramChatId,
+        userState: {
+          create: {
+            state: 'IDLE',
+            context: {},
+          },
+        },
       },
+      include: { userState: true },
     });
 
     logger.info({
@@ -83,12 +62,47 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       userId: user.id,
       username: user.username,
     });
+  } else {
+    // 🔹 3. Ensure UserState exists (VERY IMPORTANT for old users)
+    if (!user.userState) {
+      const state = await prisma.userState.create({
+        data: {
+          userId: user.id,
+          state: 'IDLE',
+          context: {},
+        },
+      });
+
+      user.userState = state;
+    }
+
+    // 🔹 4. Update dynamic fields (keep user fresh)
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        username,
+        telegramchatId: telegramChatId,
+        updatedAt: new Date(),
+      },
+      include: { userState: true },
+    });
   }
 
-  if (!user) {
-    throw new NotFoundError('User could not be created');
+  // 🔹 5. Seller logic (clean separation)
+  let sellerShop: string | null = null;
+
+  if (user.role === Roles.SELLER ) {
+    const sellerProfile = await prisma.sellerProfile.findUnique({
+      where: { userId: user.id },
+      include: { shop: true },
+    });
+
+    if (sellerProfile?.shop) {
+      sellerShop = sellerProfile.shop.id;
+    }
   }
 
+  // 🔹 6. Token
   const token = signJwt({
     sub: user.id,
     role: user.role,
@@ -103,20 +117,98 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     telegramChatId: user.telegramchatId,
   });
 
+  // 🔹 7. RETURN STATE (THIS IS CRITICAL FOR BOT)
   res.status(200).json({
     token,
     user: {
       id: user.id,
-      telegram_id : user.telegramId,
+      telegram_id: user.telegramId,
       username: user.username,
       role: user.role,
       telegramChatId: user.telegramchatId,
-      shopid: sellerShop?.shop?.id ?? null,
+      shopid: sellerShop,
+      state: user.userState?.state,
+      context: user.userState?.context,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
   });
 });
+
+export const get_user_state = catchAsync(async (req: Request, res: Response) => {
+  const telegram_id = req.query.telegram_id as string;
+
+  if (!telegram_id) throw new ForbiddenError('Telegram ID is required');
+
+  const user = await prisma.user.findUnique({
+    where: { telegramId: telegram_id },
+    include: { userState: true },
+  });
+
+  if (!user) {
+    throw new UnauthorizedError('User not found');
+  }
+
+  res.status(200).json({
+    state: user.userState?.state || 'IDLE',
+    context: user.userState?.context || {},
+  });
+});
+
+
+
+export const update_state = catchAsync(async (req: Request, res: Response) => {
+  const telegram_id = req.body.telegram_id as string;
+  
+
+  if (!telegram_id) throw new ForbiddenError('Telegram ID is required');
+ 
+  // 🔹 1. Find user WITH state
+  let user = await prisma.user.findUnique({
+    where: { telegramId: telegram_id },
+    include: { userState: true },
+  });
+  
+  if (!user) {
+    throw new UnauthorizedError('User not found');
+  }
+
+  const { state, context } = req.body;
+
+  if (!state) {
+    throw new ForbiddenError('State is required');
+  }
+
+  const validStates = [
+    'IDLE',
+    'BROWSING',
+    'SHOP_VIEW',
+    'TIMEFRAME_SELECTION',
+    'STAT_CHECK',
+    'APPEALING',
+    'APPEAL_SUMMITED',
+    'SUPPORT_CONTACT',
+    'SHOP_INFO',
+    'TO_BE_SELLER'
+  ];
+
+  if (!validStates.includes(state)) {
+    throw new ForbiddenError('Invalid state value');
+  }
+
+  await prisma.userState.upsert({
+    where: { userId: user.id },
+    update: { state, context },
+    create: {
+      userId: user.id,
+      state,
+      context,
+    },
+  });
+
+  res.status(200).json({ message: 'User state updated successfully' });
+});
+
 
 
 // src/routes/auth.ts
@@ -125,7 +217,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
   const { initData } = req.body;
 
- logger.info({
+  logger.info({
     event: 'telegram_login_attempt',
     requestId: req.requestId,
     initDataProvided: !!initData,
@@ -149,7 +241,7 @@ export const telegramLogin = catchAsync(async (req: Request, res: Response) => {
   const userId = user.id;
 
   // TODO: find or create user in database
-    let existingUser = await prisma.user.findUnique({
+  let existingUser = await prisma.user.findUnique({
     where: { telegramId: userId.toString() },
   });
 
@@ -201,8 +293,8 @@ export const me = catchAsync(async (req: Request, res: Response) => {
 
   res.status(200).json({
     id: user.id,
-    telegram_id : user.telegramId,
-    telegram_chat_id : user.telegramchatId,
+    telegram_id: user.telegramId,
+    telegram_chat_id: user.telegramchatId,
     username: user.username,
     role: user.role,
     createdAt: user.createdAt,

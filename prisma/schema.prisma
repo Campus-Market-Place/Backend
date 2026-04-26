@@ -31,10 +31,22 @@ model User {
   reviews       Review[]
   productImages ProductImage[] // Added relation to ProductImage
   Fevorite      Fevorite[]
-  appeals       Appeal[]      
+  appeals       Appeal[]    
+  userState     UserState?  
 
   @@index([telegramId])
 }
+
+model UserState {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  state     BotState @default(IDLE)
+  context   Json?
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
 
 model Fevorite {
   id        String @id @default(uuid())
@@ -378,3 +390,18 @@ enum NotificationType {
   WARNING
   INFO
 }
+
+enum BotState {
+  IDLE
+  BROWSING
+  SHOP_VIEW
+  TIMEFRAME_SELECTION
+  STAT_CHECK
+  APPEALING
+  APPEAL_SUMMITED
+  SUPPORT_CONTACT
+  SHOP_INFO
+  TO_BE_SELLER
+  CONTACTING_SELLER
+}
+
