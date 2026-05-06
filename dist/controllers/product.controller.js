@@ -70,24 +70,16 @@ exports.createProduct = (0, wrapper_js_1.catchAsync)(async (req, res) => {
         return product;
     });
     // get shop
-    const shopDetails = await prisma_js_1.prisma.shop.findUnique({
-        where: { id: shop },
-    });
-    const followers = await prisma_js_1.prisma.follow.findMany({
-        where: { shopId: shop, isActive: true },
-        select: {
-            user: {
-                select: {
-                    telegramchatId: true,
-                },
-            },
-        },
-    });
-    const message = `📢 New product alert!\n\n🛍️ ${result.name} is now available in ${req.shop?.shopName || "our shop"}\n\n💰 Price: $${result.price}\n\n👀 Check it out before it's gone!`;
-    const telegramRecipients = followers
-        .map((follower) => follower.user.telegramchatId)
-        .filter((chatId) => Boolean(chatId));
-    await Promise.allSettled(telegramRecipients.map((chatId) => (0, Telegram_webhook_js_1.sendTelegramMessage)(chatId, message)));
+    // const shopDetails = await prisma.shop.findUnique({
+    //   where: { id: shop },
+    // })
+    // const message = `📢 New product alert!\n\n🛍️ ${result.name} is now available in ${req.shop?.shopName || "our shop"}\n\n💰 Price: $${result.price}\n\n👀 Check it out before it's gone!`;
+    // const telegramRecipients = followers
+    //   .map((follower) => follower.user.telegramchatId)
+    //   .filter((chatId): chatId is string => Boolean(chatId));
+    // await Promise.allSettled(
+    //   telegramRecipients.map((chatId) => sendTelegramMessage(chatId, message))
+    // );
     logger_js_1.logger.info({
         event: 'product_created',
         requestId: req.requestId,
@@ -519,9 +511,43 @@ exports.updateProductActiveStatus = (0, wrapper_js_1.catchAsync)(async (req, res
     if (!id || typeof id !== "string") {
         throw new apperror_js_1.NotFoundError("Invalid product id");
     }
-    await prisma_js_1.prisma.product.update({
+    const updatedProduct = await prisma_js_1.prisma.product.update({
         where: { id },
         data: { isActive },
+        select: {
+            id: true,
+            name: true,
+            price: true,
+            shopId: true,
+            shop: {
+                select: {
+                    shopName: true,
+                },
+            },
+        },
+    });
+    if (isActive) {
+        const followers = await prisma_js_1.prisma.follow.findMany({
+            where: { shopId: updatedProduct.shopId, isActive: true },
+            select: {
+                user: {
+                    select: {
+                        telegramchatId: true,
+                    },
+                },
+            },
+        });
+        const message = `📢 New product alert!\n\n🛍️ ${updatedProduct.name} is now available in ${updatedProduct.shop?.shopName || "our shop"}\n\n💰 Price: $${updatedProduct.price}\n\n👀 Check it out before it's gone!`;
+        const telegramRecipients = followers
+            .map((follower) => follower.user.telegramchatId)
+            .filter((chatId) => Boolean(chatId));
+        await Promise.allSettled(telegramRecipients.map((chatId) => (0, Telegram_webhook_js_1.sendTelegramMessage)(chatId, message)));
+    }
+    logger_js_1.logger.info({
+        event: 'product_active_status_updated',
+        requestId: req.requestId,
+        productId: id,
+        isActive,
     });
     res.status(200).json({ message: "Product active status updated successfully" });
 });

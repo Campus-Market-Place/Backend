@@ -9,4 +9,5 @@ exports.authRouter = (0, express_1.Router)();
 exports.authRouter.get('/me', auth_controller_js_1.me);
 exports.authRouter.post('/login', (0, validate_middleware_js_1.validateBody)(auth_validation_js_1.telegramLoginSchema), auth_controller_js_1.login);
 exports.authRouter.post('/telegram', auth_controller_js_1.telegramLogin);
+exports.authRouter.patch('/users/:userId/state', auth_controller_js_1.update_state);
 //# sourceMappingURL=auth.router.js.map

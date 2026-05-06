@@ -2,9 +2,11 @@
   "name": "ts_practice_node",
   "version": "1.0.0",
   "scripts": {
-    "build": "node ./node_modules/prisma/build/index.js generate && tsc",
+    "build": "npm run prisma:generate && tsc",
+    "lint": "tsc --noEmit",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
+    "test": "tsx --test tests/health.test.ts",
     "prisma:generate": "node ./node_modules/prisma/build/index.js generate",
     "prisma:migrate:dev": "node ./node_modules/prisma/build/index.js migrate dev",
     "prisma:migrate:prod": "node ./node_modules/prisma/build/index.js migrate deploy",

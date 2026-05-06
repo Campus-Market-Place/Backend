@@ -85,7 +85,15 @@ async function uploadImageFileAndCleanup(filePath, options) {
     }
 }
 async function uploadMulterFiles(files, options) {
-    return Promise.all(files.map((file) => uploadImageFileAndCleanup(file.path, { folder: options?.folder })));
+    return Promise.all(files.map((file) => {
+        if (file.buffer && file.buffer.length > 0) {
+            return uploadImageBuffer(file.buffer, { folder: options?.folder });
+        }
+        if (file.path) {
+            return uploadImageFileAndCleanup(file.path, { folder: options?.folder });
+        }
+        throw new Error(`Unable to upload file '${file.originalname}': missing both buffer and path`);
+    }));
 }
 async function deleteCloudinaryAsset(publicId, type = "private") {
     await config_js_1.cloudinary.uploader.destroy(publicId, {
