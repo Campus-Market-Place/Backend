@@ -1,59 +1,35 @@
-FROM node:22-bookworm-slim AS deps
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        python3 \
-        make \
-        g++ \
-        libcairo2 \
-        libjpeg62-turbo \
-        libpango-1.0-0 \
-        libgif7 \
-        librsvg2-2 \
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    openssl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# 👇 COPY prisma FIRST (important)
+COPY prisma ./prisma
+COPY prisma.config.ts ./ 
+ # if you use it
+
+# 👇 Then package files
 COPY package*.json ./
 
-RUN npm ci --ignore-scripts
+# Install dependencies (now prisma works)
+RUN npm install
 
-FROM deps AS build
+# Copy rest of app
+COPY . .
 
-ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/campus_marketplace?schema=public
+# Generate prisma client (safe now)
+RUN npx prisma generate
 
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-COPY tsconfig.json ./
-COPY src ./src
-COPY lib ./lib
-COPY api ./api
-
+# Build app
 RUN npm run build
-RUN npm prune --omit=dev
 
-FROM node:22-bookworm-slim AS runtime
-
-WORKDIR /app
 ENV NODE_ENV=production
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        libcairo2 \
-        libjpeg62-turbo \
-        libpango-1.0-0 \
-        libgif7 \
-        librsvg2-2 \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/prisma.config.ts ./
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm run prisma:migrate:prod && npm start"]
+CMD ["npm", "start"]
