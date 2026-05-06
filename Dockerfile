@@ -17,9 +17,11 @@ RUN apt-get update \
 
 COPY package*.json ./
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 FROM deps AS build
+
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/campus_marketplace?schema=public
 
 COPY prisma ./prisma
 COPY prisma.config.ts ./
